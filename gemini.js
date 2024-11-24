@@ -16,13 +16,13 @@ const question = `Select the framework you have worked on.`;
 let options = ["React", "Angular", ".Net"];
 const experience = `3 Years`;
 
-const project = "global-terrain-332514";
+const project = "easyledger-ed2ef";
 const location = "us-central1";
 const textModel = "gemini-1.0-pro";
 
 const auth = new GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  keyFile: "global-terrain-332514-5973072b6666.json",
+  keyFile: "easyledger-ed2ef-dbf3d6b78f22.json",
 });
 
 const vertexAI = new VertexAI({
@@ -72,10 +72,10 @@ const checkSuitability = async (
     const result = await generativeModel.generateContent(request);
     response = result.response;
     let answer = response.candidates[0].content.parts[0].text;
-    console.log(answer);
+    // console.log(answer);
     answer = "{" + answer.split("{")[1].split("}")[0] + "}";
     const answerObject = await JSON.parse(answer);
-    console.log(answerObject)
+    // console.log(answerObject)
     if (answerObject.isSuitable == "no") answerObject.isSuitable = false;
     if (answerObject.isSuitable == "true") answerObject.isSuitable = true;
     return answerObject;
@@ -89,12 +89,150 @@ const checkSuitability = async (
   }
 };
 
+const generatePrompt = (profile, askedQuestion, answerOptions = {}) => {
+  const hasOptions = Object.keys(answerOptions).length > 0;
+
+  return `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. ${
+    hasOptions ? 
+    'If the question has options, return the most suitable option based on my details provided below.' : 
+    'If options are not provided, respond with a one or two-word answer.'
+  }
+  ---------------------------------------------
+  
+  My Details:
+  ${JSON.stringify(profile)}
+  
+  -------------------------------------------------
+  
+  Mention the experience as '0' for the skills which are not mentioned in the skills list.
+  If you are not sure about the question or you do not have enough information, respond with 'NA'. Do not answer the question unless you are 100% sure. Do not consider anything on your own. Use the details mentioned above to answer.
+  Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
+  Your output will be parsed and type-checked. Make sure that there are no trailing commas!
+  do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
+  {"question": "What is your notice period?","answer": ${hasOptions ? '["2 Months"]' : '"2 Months"'}, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
+  
+  The "answer" field in the response object should be ${hasOptions ? 'an array if options are provided.' : 'a string if options are not provided.'}
+  
+  For example:
+  ${
+    hasOptions 
+      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }` 
+      : `If options are not provided: { "answer": "2 Months", ...remaining fields }`
+  }
+  
+  Here is the question asked by the recruiter: "${askedQuestion}"
+  ${
+    hasOptions
+      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(answerOptions)}". Your answer field should be an array. Answer should be in [""] format.`
+      : `Options are not provided, answer with a one or two-word response.`
+  }
+  `;
+};
+
+const generatePrompt2 = (profile, askedQuestion) => {
+  const hasOptions = Object.keys(answerOptions).length > 0;
+
+  return `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. ${
+    hasOptions ? 
+    'If the question has options, return the most suitable option based on my details provided below.' : 
+    'If options are not provided, respond with a one or two-word answer.'
+  }
+  ---------------------------------------------
+  
+  My Details:
+  ${JSON.stringify(profile)}
+  
+  -------------------------------------------------
+  
+  Mention the experience as '0' for the skills which are not mentioned in the skills list.
+  If you are not sure about the question or you do not have enough information, respond with 'NA'. Do not answer the question unless you are 100% sure. Do not consider anything on your own. Use the details mentioned above to answer.
+  Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
+  Your output will be parsed and type-checked. Make sure that there are no trailing commas!
+  do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
+  {"question": "What is your notice period?","answer": ${hasOptions ? '["2 Months"]' : '"2 Months"'}, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
+  
+  The "answer" field in the response object should be ${hasOptions ? 'an array if options are provided.' : 'a string if options are not provided.'}
+  
+  For example:
+  ${
+    hasOptions 
+      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }` 
+      : `If options are not provided: { "answer": "2 Months", ...remaining fields }`
+  }
+  
+  Here is the question asked by the recruiter: "${askedQuestion}"
+  ${
+    hasOptions
+      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(answerOptions)}". Your answer field should be an array. Answer should be in [""] format.`
+      : `Options are not provided, answer with a one or two-word response.`
+  }
+  `;
+};
+
 const answerQuestion = async (
   askedQuestion = question,
   answerOptions = options,
   profile
 ) => {
+  // const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below. 
+
+  // ---------------------------------------------
+  
+  // My Details:
+  // ${JSON.stringify(profile)}
+  
+  // -------------------------------------------------
+  
+  // Mention the experience as '0' for the skills which are not mentioned in the skills list.
+  // If you are not sure about the question or you do not have enough information, respond with 'NA'. Do not answer the question unless you are 100% sure. Do not consider anything on your own. Use the details mentioned above to answer.
+  // Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
+  // Your output will be parsed and type-checked. Make sure that there are no trailing commas!
+  // do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
+  // {"question": "What is your notice period?","answer": ["2 Months"],"confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
+  
+  // The "answer" field in the response object should be an array if options are provided. If options are not provided, it should be a string.
+  
+  // For example:
+  // If options are provided: { "answer": ["2 Months"], ...remaining fields }
+  // If options are not provided: { "answer": "2 Months", ...remaining fields }
+  
+  // Here is the question asked by the recruiter: "${askedQuestion}"
+  // ${
+  //   Object.keys(answerOptions).length
+  //     ? `Here are the options from which you have to select the most suitable option: "${answerOptions}". Your answer field should be an array. Answer should be in [""] format.`
+  //     : `Options are not provided, answer with a one or two-word response.`
+  // }
+  // `;
+  let response;
+  const prompt = generatePrompt(profile, askedQuestion, answerOptions);
+  try {
+    const request = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    };
+    const result = await generativeModel.generateContent(request);
+    response = result.response;
+    let answer = response.candidates[0].content.parts[0].text;
+    // console.log(answer)
+    answer = "{" + answer.split("{")[1].split("}")[0] + "}";
+    const answerObject = await JSON.parse(answer);
+    // console.log(answerObject) 
+    // console.log([askedQuestion, answerOptions, answerObject]);
+    return answerObject;
+  } catch (e) {
+    console.log("Error while generating Assistant response: " + e);
+    console.log("The answer is -> ");
+    console.log(response.candidates[0].content.parts[0].text);
+    return;
+  }
+};
+
+const answerQuestion2 = async (
+  askedQuestion = question,
+  answerOptions = options,
+  profile
+) => {
   const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below. 
+
   ---------------------------------------------
   
   My Details:
@@ -115,15 +253,10 @@ const answerQuestion = async (
   If options are provided: { "answer": ["2 Months"], ...remaining fields }
   If options are not provided: { "answer": "2 Months", ...remaining fields }
   
-  Here is the question asked by the recruiter: "${askedQuestion}"
-  ${
-    Object.keys(answerOptions).length
-      ? `Here are the options from which you have to select the most suitable option: "${answerOptions}". Your answer field should be an array. Answer should be in [""] format.`
-      : `Options are not provided, answer with a one or two-word response.`
-  }
+  Here are the questions asked by the recruiter: "${JSON.stringify(askedQuestion)}"
   `;
-  console.log("in the function")
   let response;
+  // const prompt = generatePrompt(profile, askedQuestion, answerOptions);
   try {
     const request = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -132,9 +265,10 @@ const answerQuestion = async (
     response = result.response;
     let answer = response.candidates[0].content.parts[0].text;
     console.log(answer)
-    answer = "{" + answer.split("{")[1].split("}")[0] + "}";
+    debugger;
+    answer = answer.split('```json')[1].split('```')[0];
     const answerObject = await JSON.parse(answer);
-    console.log(answerObject) 
+    // console.log(answerObject) 
     // console.log([askedQuestion, answerOptions, answerObject]);
     return answerObject;
   } catch (e) {
@@ -151,4 +285,5 @@ module.exports = {
   experience,
   checkSuitability,
   answerQuestion,
+  answerQuestion2,
 };

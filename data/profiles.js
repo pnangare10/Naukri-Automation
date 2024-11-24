@@ -19,7 +19,14 @@ const profiles = [
     willingToRelocate: "Yes",
     visaSponsorship: "No",
     lastWorkingDay: "30th July 2024",
-    keywords: `react%20js%2C%20javascript%2C%20front%20end%20developer%2C%20ui%20development%2C%20redux%2C%20frontend%20development`,
+    keywords: [
+      "react js",
+      "javascript",
+      "front end developer",
+      "ui development",
+      "redux",
+      "frontend development",
+    ],
     creds: {
       username: "praneshnangare10@gmail.com",
       password: "Pran@1653",
