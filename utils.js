@@ -64,10 +64,11 @@ const getDataFromFile = async (fileName, profile) => {
 };
 
 const filterJobs = (jobInfo) => {
-  const preferredSalary = 500000;
+  const user = localStorage.getItem("profile");
+  const preferredSalary = user.profile.expectedCtc ?? 0;
   const maxTime = 30;
   const maxApplyCount = 10000;
-  const experience = 5;
+  const experience = user.profile.totalExperience.year+2 ?? 100;
   const videoProfile = false;
   const vacany = 1;
   const filteredJobs = jobInfo

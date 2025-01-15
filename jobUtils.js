@@ -424,7 +424,8 @@ const getUserProfile = async () => {
 const getPreferences = async (user) => {
   let preferences = await getDataFromFile("preferences", user.id);
 
-  if (!preferences.desiredRole) preferences.desiredRole = user.profile.desiredRole;
+  if (!preferences.desiredRole)
+    preferences.desiredRole = user.profile.desiredRole;
   let res = await askQuestion(
     `Here are current desired roles:
     ${preferences.desiredRole ?? "None"}
@@ -517,7 +518,10 @@ const constructUser = async (apiData) => {
         apiData.profile[0].disability.isDisabled == "N" ? "No" : "Yes",
       noticePeriod: apiData.profile[0].noticePeriod.value,
       currentCtc: Number(apiData.profile[0].absoluteCtc),
-      totalExperience: ` ${apiData.profile[0].experience.year} Years ${apiData.profile[0].experience.month} Months`,
+      totalExperience: {
+        year: apiData.profile[0].experience.year,
+        month: apiData.profile[0].experience.month,
+      },
       desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
       currentLocation: ` ${apiData.profile[0].city.value}, ${apiData.profile[0].country.value}`,
     },
