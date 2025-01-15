@@ -16,13 +16,13 @@ const question = `Select the framework you have worked on.`;
 let options = ["React", "Angular", ".Net"];
 const experience = `3 Years`;
 
-const project = "easyledger-ed2ef";
+const project = "fifth-totality-401110";
 const location = "us-central1";
 const textModel = "gemini-1.0-pro";
 
 const auth = new GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  keyFile: "easyledger-ed2ef-dbf3d6b78f22.json",
+  keyFile: "fifth-totality-401110-34ba6376d058.json",
 });
 
 const vertexAI = new VertexAI({
@@ -46,15 +46,14 @@ const generativeModel = vertexAI.getGenerativeModel({
 });
 
 const checkSuitability = async (
-  description=description1,
-  skillSet = skills,
-  experienceDetails = experience
+  job,
+  profile,
 ) => {
   const prompt = `I'm seeking your assistance in my job application process. I'll provide you with my skills and experience, and your task is to analyze job descriptions to determine their relevance to my skillset. Based on the provided job description, please classify whether the job is suitable for me. If you believe it aligns with my skills, return "yes"; otherwise, return "no".
 
-  My Skills: ${skillSet}
+  My Skills: ${profile.skills}
   
-  Job Description: ${JSON.stringify(description)}
+  Job Description: ${JSON.stringify(job.description)}
   
   Your analysis should focus on identifying the primary skill emphasized in the job description and assessing my suitability for that skill.Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
   Your output will be parsed and type-checked. Make sure that there are no trailing commas!
@@ -76,8 +75,8 @@ const checkSuitability = async (
     answer = "{" + answer.split("{")[1].split("}")[0] + "}";
     const answerObject = await JSON.parse(answer);
     // console.log(answerObject)
-    if (answerObject.isSuitable == "no") answerObject.isSuitable = false;
-    if (answerObject.isSuitable == "true") answerObject.isSuitable = true;
+    if (answerObject.isSuitable == "no" || answerObject.isSuitable == "false") answerObject.isSuitable = false;
+    if (answerObject.isSuitable == "yes" || answerObject.isSuitable == "true") answerObject.isSuitable = true;
     return answerObject;
   } catch (e) {
     console.log(
@@ -227,8 +226,7 @@ const answerQuestion = async (
 };
 
 const answerQuestion2 = async (
-  askedQuestion = question,
-  answerOptions = options,
+  questionsToBeAnswered = question,
   profile
 ) => {
   const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below. 
@@ -253,7 +251,7 @@ const answerQuestion2 = async (
   If options are provided: { "answer": ["2 Months"], ...remaining fields }
   If options are not provided: { "answer": "2 Months", ...remaining fields }
   
-  Here are the questions asked by the recruiter: "${JSON.stringify(askedQuestion)}"
+  Here are the questions asked by the recruiter: "${JSON.stringify(questionsToBeAnswered)}"
   `;
   let response;
   // const prompt = generatePrompt(profile, askedQuestion, answerOptions);
