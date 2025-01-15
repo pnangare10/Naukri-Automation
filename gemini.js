@@ -51,7 +51,7 @@ const checkSuitability = async (
 ) => {
   const prompt = `I'm seeking your assistance in my job application process. I'll provide you with my skills and experience, and your task is to analyze job descriptions to determine their relevance to my skillset. Based on the provided job description, please classify whether the job is suitable for me. If you believe it aligns with my skills, return "yes"; otherwise, return "no".
 
-  My Skills: ${profile.skills}
+  My Skills: ${JSON.stringify(profile.skills)}
   
   Job Description: ${JSON.stringify(job.description)}
   

@@ -31,6 +31,9 @@ const askQuestion = async (question) => {
 // Write the questions to the file
 const writeToFile = (data, fileName, profile) => {
   //check if file exists
+  if (profile === undefined) {
+    profile = localStorage.getItem("profile").id;
+  }
   if (!fs.existsSync(`./data/${profile}`)) {
     fs.mkdirSync(`./data/${profile}`, { recursive: true });
   }
@@ -46,7 +49,12 @@ const writeToFile = (data, fileName, profile) => {
 };
 
 // Get the questions from the file and parse into json and return the object
-const getDataFromFile = (fileName, profile) => {
+const getDataFromFile = async (fileName, profile) => {
+  console.log(profile);
+  if (profile === undefined) {
+    profile = await localStorage.getItem("profile");
+    profile = profile.id;
+  }
   //check if file exists
   if (!fs.existsSync(`./data/${profile}/${fileName}.json`)) {
     return [];
@@ -86,7 +94,8 @@ const filterJobs = (jobInfo) => {
       description: jobDetails.description,
       minimumSalary: jobDetails.minimumSalary,
       maximumSalary: jobDetails.maximumSalary,
-    })).sort((a, b) => b.maximumSalary - a.maximumSalary);
+    }))
+    .sort((a, b) => b.maximumSalary - a.maximumSalary);
   console.log(
     `Total number of Jobs : ${jobInfo.length}\nFiltered Jobs : ${filteredJobs.length}`
   );
@@ -108,7 +117,7 @@ const selectProfile = async () => {
       (profile, index) => `(${index + 1}) : ${profile.id}`
     );
     const ans = await askQuestion(
-      `Select a profile from the following list:\n${profileNames.join("\n")}`
+      `Select a profile from the following list:\n${profileNames.join("\n")}\n`
     );
 
     const index = parseInt(ans, 10); // Convert ans to a number
@@ -122,8 +131,24 @@ const selectProfile = async () => {
   return selectedProfile;
 };
 
-const matchKeywords = (keywords, jobKeywords) => {
-  const isMatched = keywords.some((keyword) => jobKeywords?.toLowerCase().includes(keyword.toLowerCase()));
+const matchKeywords = async (keywords, jobKeywords) => {
+  if (!keywords || keywords.length === 0) {
+    preferences = await getDataFromFile("preferences");
+    if (!preferences.keywords || preferences.keywords.length === 0) {
+      const res = await askQuestion(
+        "Please enter keywords to match with job description\n"
+      );
+      keywords = res.split(",");
+      const preferences = getDataFromFile("preferences");
+      preferences.keywords = keywords;
+      writeToFile(preferences, "preferences");
+    } else {
+      keywords = preferences.keywords;
+    }
+  }
+  const isMatched = keywords.some((keyword) =>
+    jobKeywords?.toLowerCase().includes(keyword.toLowerCase())
+  );
   return isMatched;
 };
 
@@ -144,10 +169,10 @@ const matchingMethods = {
   keywords: matchKeywords,
 };
 
-const matchingStrategy = async (jobInfo, profile) => {
-  const keywordMatchingResult = matchingMethods.keywords(
+const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
+  const keywordMatchingResult = await matchingMethods.keywords(
     profile.keywords,
-    jobInfo.description
+    matchDescription ? jobInfo.description : jobInfo.title
   );
   if (keywordMatchingResult) return true;
   // const aiMatchingResult = matchingMethods.ai(jobInfo, profile);

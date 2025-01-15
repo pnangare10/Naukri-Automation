@@ -12,5 +12,5 @@ const getFormattedDate = () => {
 }
 
 module.exports = {
-  getFormattedDate
+  getFormattedDate,
 }

@@ -6,6 +6,7 @@ const {
   loginAgainAPI,
   loginAPI,
   getRecommendedJobsAPI,
+  getProfileDetailsAPI,
 } = require("./api");
 
 const {
@@ -29,9 +30,10 @@ const {
 const localStorage = require("./localStorage");
 
 const login = async (profile) => {
-  if (!profile.creds) {
-    console.log("Please provide credentials in profile");
-    throw new Error("Credentials not found");
+  if (!profile?.creds) {
+    const email = await askQuestion("Enter your email : ");
+    const password = await askQuestion("Enter your password : ");
+    profile = { creds: { username: email, password: password } };
   }
   const response = await loginAPI(profile.creds);
   if (!response.ok) {
@@ -46,6 +48,7 @@ const login = async (profile) => {
 
   // writeToFile(cookies.nauk_at, "accessToken", profile.id);
   localStorage.setItem("authorization", cookies.nauk_at);
+  console.log("Logged in successfully");
   return cookies.nauk_at;
 };
 
@@ -118,14 +121,16 @@ const getJobInfo = async (jobIds) => {
       } else if (response.status == 303) {
         const data = await response.json();
         if (data?.metaSearch?.isExpiredJob == "1") {
-          console.log("Expired Job");
+          process.stdout.write("Expired Job \r");
         }
       }
       // only print these statement for every 5 jobs or at the end
       // if (jobInfo.length % 10 == 0 || jobInfo.length == jobIds.length) {
-        process.stdout.write(`Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`);
+      process.stdout.write(
+        `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
+      );
       // }
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // await new Promise((resolve) => setTimeout(resolve, 50));
     } catch (e) {
       console.log(e);
     }
@@ -144,7 +149,6 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
         throw new Error("403 Forbidden");
       }
     });
-
     if (!data?.jobDetails) {
       console.log(data);
       return [];
@@ -357,27 +361,29 @@ const handleQuestionnaire = async (data) => {
 };
 
 const clearJobs = async () => {
-  const profile = localStorage.getItem("profile");
+  const profile = await localStorage.getItem("profile");
+  console.log("Clearing jobs");
+  console.log(profile);
   writeToFile({}, "searchedJobs", profile.id);
   writeToFile({}, "filteredJobIds", profile.id);
 };
 // main function90
 
 const findNewJobs = async (noOfPages, repetitions) => {
-  const profile = localStorage.getItem("profile");
+  const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
   const recommendedJobs = await getRecommendedJobs();
   searchedJobIds.push(...recommendedJobs);
-  // for (let i = 0; i < noOfPages; i++) {
-  //   // console.log(`Searching for jobs in page ${i + 1}`);
-  //   const jobs = await searchJobs(
-  //     i + 1,
-  //     profile.keywords?.map(encodeURIComponent).join("%2C%20"),
-  //     repetitions
-  //   );
-  //   searchedJobIds.push(...jobs);
-  // }
+  for (let i = 0; i < noOfPages; i++) {
+    // console.log(`Searching for jobs in page ${i + 1}`);
+    const jobs = await searchJobs(
+      i + 1,
+      profile.desiredRole?.map(encodeURIComponent).join("%2C%20"),
+      repetitions
+    );
+    searchedJobIds.push(...jobs);
+  }
   const uniqueJobIds = Array.from(new Set(searchedJobIds));
   console.log(
     `Found total ${searchedJobIds.length} jobs from ${noOfPages} pages out of which ${uniqueJobIds.length} are unique`
@@ -392,9 +398,12 @@ const findNewJobs = async (noOfPages, repetitions) => {
 };
 
 const getExistingJobs = async () => {
-  const profile = localStorage.getItem("profile");
-  const jobsFromFile = await getDataFromFile("filteredJobIds", profile.id);
-  const filteredJobs = jobsFromFile.filter((job) => job.isSuitable || job.isApplied);
+  const jobsFromFile = await getDataFromFile("filteredJobIds");
+  console.log("Jobs from file : ");
+  console.log(jobsFromFile.length);
+  const filteredJobs = jobsFromFile?.filter(
+    (job) => job.isSuitable || job.isApplied
+  );
   if (filteredJobs.length > 0) {
     console.log("Found jobs from file " + filteredJobs.length);
     return filteredJobs;
@@ -402,6 +411,121 @@ const getExistingJobs = async () => {
     console.log("No jobs found in file");
     return [];
   }
+};
+
+const getUserProfile = async () => {
+  const response = await getProfileDetailsAPI();
+  const userData = await response.json();
+  const profile = await constructUser(userData);
+  localStorage.setItem("profile", profile);
+  return profile;
+};
+
+const getPreferences = async (user) => {
+  let preferences = await getDataFromFile("preferences", user.id);
+
+  if (!preferences.desiredRole) preferences.desiredRole = user.profile.desiredRole;
+  let res = await askQuestion(
+    `Here are current desired roles:
+    ${preferences.desiredRole ?? "None"}
+    Please enter more desired roles
+    Hit enter to skip\n`
+  );
+
+  if (res !== "") {
+    res.split(",").forEach((role) => {
+      preferences.desiredRole.push(role.trim());
+    });
+  }
+
+  if (!preferences.keywords) {
+    preferences.keywords = user.profile.keySkills
+      .split(",")
+      .map((skill) => skill.trim());
+  }
+
+  res = await askQuestion(
+    `Current keywords to match the jobs:
+    ${preferences.keywords}
+    Please enter more keywords to match the jobs
+    Hit enter to skip
+    Note: Include variation of the keywords as well to match correctly.\n`
+  );
+
+  if (res !== "") {
+    res.split(",").forEach((keyword) => {
+      preferences.keywords.push(keyword.trim());
+    });
+  }
+
+  writeToFile(preferences, "preferences", user.id);
+
+  return preferences;
+};
+
+const constructUser = async (apiData) => {
+  const user = {
+    id: apiData.profile[0].name,
+    userDetails: {
+      email: apiData.user.email,
+      mobile: apiData.user.mobile,
+      name: apiData.profile[0].name,
+    },
+    skills: apiData.itskills.map((skill) => ({
+      skillName: skill.skill,
+      experienceYears: skill.experienceTime.year,
+      experienceMonths: skill.experienceTime.month,
+    })),
+    education: apiData.educations.map((edu) => ({
+      degree: edu.course.value,
+      specialization: edu.specialisation.value,
+      institute: edu.institute,
+      marks: edu.marks,
+      startYear: edu.yearOfStart,
+      completionYear: edu.yearOfCompletion,
+    })),
+    employmentHistory: apiData.employments.map((emp) => ({
+      designation: emp.designation,
+      organization: emp.organization,
+      startDate: emp.startDate,
+      endDate: emp.endDate || "Present",
+      jobDescription: emp.jobDescription,
+    })),
+    schools: apiData.schools.map((school) => ({
+      board: school.schoolBoard.value,
+      completionYear: school.schoolCompletionYear,
+      percentage: school.schoolPercentage.value,
+      educationType: school.educationType.value,
+    })),
+    languages: apiData.languages.map((lang) => ({
+      language: lang.lang,
+      proficiency: lang.proficiency.value,
+      abilities: lang.ability,
+    })),
+    profile: {
+      keySkills: apiData.profile[0].keySkills,
+      birthDate: apiData.profile[0].birthDate,
+      gender: apiData.profile[0].gender == "M" ? "Male" : "Female",
+      maritalStatus: apiData.profile[0].maritalStatus.value,
+      pinCode: apiData.profile[0].pincode,
+      desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
+      locationPreference: apiData.profile[0].locationPrefId.map(
+        (loc) => loc.value
+      ),
+      expectedCtc: Number(apiData.profile[0].absoluteExpectedCtc),
+      disability:
+        apiData.profile[0].disability.isDisabled == "N" ? "No" : "Yes",
+      noticePeriod: apiData.profile[0].noticePeriod.value,
+      currentCtc: Number(apiData.profile[0].absoluteCtc),
+      totalExperience: ` ${apiData.profile[0].experience.year} Years ${apiData.profile[0].experience.month} Months`,
+      desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
+      currentLocation: ` ${apiData.profile[0].city.value}, ${apiData.profile[0].country.value}`,
+    },
+  };
+  const preferences = await getPreferences(user);
+  user.desiredRole = preferences.desiredRole;
+  user.keywords = preferences.keywords;
+  return user;
 };
 
 module.exports = {
@@ -416,4 +540,6 @@ module.exports = {
   clearJobs,
   findNewJobs,
   getExistingJobs,
+  getUserProfile,
+  constructUser,
 };

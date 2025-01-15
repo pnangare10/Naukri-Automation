@@ -21,28 +21,28 @@ const {
   findNewJobs,
   applyForJobs,
   login,
+  getUserProfile,
 } = require("./jobUtils");
+
 const { profiles } = require("./data/profiles/profiles");
 
 const noOfPages = 5;
 const repetitions = 1;
 let profile = profiles[0];
-const quotaLimit = 40;
+const quotaLimit = 50;
 
 const doTheStuff = async (profile) => {
-  const jobIds = [];
   try {
     console.log("Mission Job search Started...");
     const ans = await askQuestion(
-      `Would you like to search for new jobs (Y/N) ?`
+      `Would you like to search for new jobs (Y/N) ?\n`
     );
+    let jobIds = [];
     if (ans.toLowerCase() == "n") {
-      const jobs = await getExistingJobs();
-      jobIds.push(...jobs);
+      jobIds = await getExistingJobs();
     }
     if (ans.toLowerCase() == "y" || jobIds.length == 0) {
-      const jobs = await findNewJobs(noOfPages, repetitions);
-      jobIds.push(...jobs);
+      jobIds = await findNewJobs(noOfPages, repetitions);
     }
     for (let i = 0; i < jobIds.length; i++) {
       try {
@@ -53,9 +53,7 @@ const doTheStuff = async (profile) => {
 
         if (!isSuitable || isAlreadyApplied) {
           console.log(
-            `> ${i + 1} of ${jobIds.length} | ${
-              job.jobTitle
-            } in ${
+            `> ${i + 1} of ${jobIds.length} | ${job.jobTitle} in ${
               job.companyName
             } | ${isAlreadyApplied ? "Already applied" : "not suitable"}`
           );
@@ -64,11 +62,9 @@ const doTheStuff = async (profile) => {
         }
 
         console.log(
-          `> ${i + 1} of ${jobIds.length} | ${
-            job.jobTitle
-          } in ${job.companyName} | ${
-            isSuitable ? "Suitable" : "Not Suitable"
-          }`
+          `> ${i + 1} of ${jobIds.length} | ${job.jobTitle} in ${
+            job.companyName
+          } | ${isSuitable ? "Suitable" : "Not Suitable"}`
         );
         job.isSuitable = isSuitable;
         const jobsSlot = [job];
@@ -82,7 +78,9 @@ const doTheStuff = async (profile) => {
           throw new Error("409001");
         }
         if (result.jobs[0].status == 200) {
-          console.log(`Applied successfully | Quota: ${result.quotaDetails.dailyApplied}`);
+          console.log(
+            `Applied successfully | Quota: ${result.quotaDetails.dailyApplied}`
+          );
           if (result.quotaDetails.dailyApplied >= quotaLimit) {
             console.log("Daily quota reached");
             break;
@@ -97,7 +95,7 @@ const doTheStuff = async (profile) => {
           throw new Error(e);
         } else if (e.message == 401) {
           // debugger;
-          await login(profile.creds);
+          await login();
           i--;
           continue;
         } else {
@@ -118,9 +116,20 @@ const doTheStuff = async (profile) => {
 };
 
 const startProgram = async () => {
-  // debugger;
-  profile = await selectProfile();
-  authorization = await login(profile);
+  const profile1 = await selectProfile();
+  authorization = await login(profile1);
+
+  const args = process.argv.slice(2);
+  const command = args[0];
+
+  if (command == "login") {
+    await login();
+  } else if (command !== "login" && command !== undefined) {
+    console.log("Available commands: login");
+    system.exit(1);
+  }
+
+  const profile = await getUserProfile();
   doTheStuff(profile);
 };
 

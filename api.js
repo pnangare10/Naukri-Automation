@@ -173,38 +173,6 @@ const loginAPI = (creds) =>
 
 const getRecommendedJobsAPI = async (clusterId) => {
   const authorization = localStorage.getItem("authorization");
-  //   return fetch("https://www.naukri.com/jobapi/v2/search/recom-jobs", {
-  //   headers: {
-  //     accept: "application/json",
-  //     "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
-  //     appid: "105",
-  //     "cache-control": "no-cache, no-store, must-revalidate",
-  //     "content-type": "application/json",
-  //     authorization: `Bearer ${authorization}`,
-  //     expires: "0",
-  //     gid: "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
-  //     pragma: "no-cache",
-  //     priority: "u=1, i",
-  //     "sec-ch-ua":
-  //       '"Microsoft Edge";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-  //     "sec-ch-ua-mobile": "?0",
-  //     "sec-ch-ua-platform": '"Windows"',
-  //     "sec-fetch-dest": "empty",
-  //     "sec-fetch-mode": "cors",
-  //     "sec-fetch-site": "same-origin",
-  //     systemid: "Naukri",
-  //     "x-requested-with": "XMLHttpRequest",
-  //     cookie:
-  //       `_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; _gcl_au=1.1.1303359034.1734549824; _ga=GA1.1.1388380775.1734549825; test=naukri.com; persona=default; PHPSESSID=f84945k47jpirc5a9at5cps7sd; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; _t_us=677D5763; _t_s=direct; nauk_at=${authorization} _t_r=1030%2F%2F; ak_bmsc=589C4455272B45AB87F9D2E5940FD90E~000000000000000000000000000000~YAAQf/TfF1tYnReUAQAAK2CdQRqtwASZZ0GlRwLA6YSI/IW2acDBPcH3sreTchlfYMnWnvyNxNiWs92WW7U18yHoeff8aDiTQ6UPBFBE/imNAHoTsI9Puwh3ZMBXgRYwXLkHmU66w3RpcqJhUl+XBKq/1ocF0LyIcU/VBfTUru6w1CWuXRZiPQkZdqv6PkYnNweO7qf7pc/1pIqaHrDkTq9BrxjTEo+B4buAPvX7xmDX1UV4gPg9uIBFK0bz13U7kRwfl8vnxai4iqCVfZR/oWCm0gVsaIYJaJYrMFzy9GneBV1ZAxDKOG6bfh9FdmxqHd0nYVWug0nrbRooIWkpIN/iy70hMwq3a1LIh4MYXLtV31X28NlqdYBkNGeIQ9kUJlv+tbiBL5WWjYXaEPlutBDGsGdIzykOL75Xj4+Xe1j82r+o1xT4H2J0b84cfzFAybVXBCw/eXL7z/c=; is_login=1; nauk_sid=94867c04c8624d519362f909c9159bc0; nauk_otl=94867c04c8624d519362f909c9159bc0; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; nauk_ps=default; _ga_T749QGK6MQ=GS1.1.1736267620.2.1.1736267637.0.0.0; tStp=1736267645322; ACTIVE=1736267645; bm_sv=D43691D9425E2C743C54733BF699A276~YAAQf/TfF3pdnReUAQAA30meQRpXZz9x5Z5oLDpAJcTWoIMTl1qNi8rfFZVv207AiHTWXjK88oUVMkB+ImIn8GlrjjzPum7pO+dkE+MgVDqPtGEB2YMTic+B0dWY5P9Y1rArGogCrRN2fiHtgVGc+3fVqj+RG9IE+IP77J8nB+vBZQNilhxR5MxmDv5g4kwmSUKrqvdOwNlC6yPYxq3SKsJ1jByMWm26tcDM/3nptUkO5jlFgpEk0CaWA2Dct4rlmg==~1; HOWTORT=cl=1736267679758&r=https%3A%2F%2Fwww.naukri.com%2Fmyapply%2FsaveApply%3FstrJobsarr%3D%5B020125008532%5D%26applytype%3Dsingle%26resId%3D180403788%26ApplyMode%3D1%26id%3D186003692%26src%3Dh%26logstr%3D--drecomm_profile-1-F-0-1--17362676460958169--drecomm_profile%26applySrc%3Ddrecomm_profile%26multiApplyResp%3D%257B%2522020125008532%2522%253A200%257D%26jobTitle%3DHiring%2520%257C%257C%2520Java%2520Frontend%2520Developer%2520%257C%257C%2520Capgemini&nu=https%3A%2F%2Fwww.naukri.com%2Fmnjuser%2Frecommendedjobs&ul=1736267679787&hd=1736267679985; _ga_K2YBNZVRLL=GS1.1.1736267619.16.1.1736267680.59.0.0`,
-  //     Cookie: `nauk_at=${authorization}`,
-  //       Referer: "https://www.naukri.com/mnjuser/recommendedjobs",
-  //     "Referrer-Policy": "strict-origin-when-cross-origin",
-  //   },
-  //   body: `{"clusterId":"${clusterId}","src":"recommClusterApi","clusterSplitDate":{"apply":"${getFormattedDate()}","preference":"${getFormattedDate()}","profile":"${getFormattedDate()}","similar_jobs":"${getFormattedDate()}"}}`,
-  //   method: "POST",
-  // }
-  // );
-
   return fetch("https://www.naukri.com/jobapi/v2/search/recom-jobs", {
     headers: {
       accept: "application/json",
@@ -225,16 +193,40 @@ const getRecommendedJobsAPI = async (clusterId) => {
       "sec-fetch-site": "same-origin",
       systemid: "Naukri",
       "x-requested-with": "XMLHttpRequest",
-      cookie:
-        "_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; _gcl_au=1.1.1303359034.1734549824; _ga=GA1.1.1388380775.1734549825; test=naukri.com; persona=default; PHPSESSID=f84945k47jpirc5a9at5cps7sd; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; _t_s=direct; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; nauk_rt=8f637d05eac544dfb6200e92efcfc313; nauk_sid=8f637d05eac544dfb6200e92efcfc313; nauk_otl=8f637d05eac544dfb6200e92efcfc313; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; nauk_ps=default; _ga_T749QGK6MQ=GS1.1.1736351598.3.0.1736351604.0.0.0; ACTIVE=1736410817; _t_r=1091%2F%2F; nauk_at=eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzEuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMxLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIyIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAxLTA4VDIxOjIzOjI0IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTczNjQ0Njg3NCwidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3MzY0NDMyNzQsImp0aSI6IjhmNjM3ZDA1ZWFjNTQ0ZGZiNjIwMGU5MmVmY2ZjMzEzIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1oYjdndCJ9.q1MNzpWkEsd2Rp5SQwa7Dyzjknf0nohQBjRagkVgVxjIsv3kB_Y2XBkOAxZCsqb_TziemEgc3-NnGE5kQP7z0wwEatSPJK0FQa0s6VPORdqp5HXgOpVS6LvWXRLuT6e_4GEZBF01fZuSAPhCaRcnZmQn0kL2WSdi_MsaCy4MbGbD4fS4wtWpLtweiNG1g71Swpgks2xtjqaOprN80y1fYfjM8cJRheLg1c8teQRtxv43OqQuImGsWV0JUmTgmhC93jegkX6oO91GLw0yPlLDksQoXP9mfPQy3Vmd9DLsW9XWRcVVYVjqb6W4_SqR8gllJ7jnN-uraDFDx8k2M1U48Q; is_login=1; bm_mi=9346D343431379B10BE43E634F0D0AD4~YAAQf/TfF0ji0xeUAQAAMKYVTBroZu/O0Tfh67CQaeBy7Yb5AnB8WmVSv470+OgkrXawr/RCnzbtorvnLmlOYcNSWzxhHRw2+imG8dvBTKlK0aSxKbygbSvIiWF2KCRyUpZhyqPl/zjuATTcY2BE4FUb95/qLSm+cKtEb13qZS6R9czW+2s/Vw96kbuAZMBaQsKO9iTFu8dk9EWoH0cTKQk5N7KYla1nIfFCRraguKc6fOAjuUfzWPRth7R/Kdv3/pwI57uMIRkAyc0wgfNU8NErkz3o1LPLFkqotjSrEzLuNLNitp2m4S/xpt2Rt1gKo8P0CBzNJCCn~1; ak_bmsc=6976661C1B9C8E8BE479C04224DB48C2~000000000000000000000000000000~YAAQf/TfF6vi0xeUAQAAOKsVTBqf3HnXHOyCArRfg+upZxeQnlnFshhaYYmVqXmLmZoN2OtrI15xIV2bOfN1J5qxeg9feCPAGYg7gK74T8dEeUQfLpprjayh190yOE4AmnycyVfzzUKfwzG4deCBgJhi+DBT0GEo1a4A7oGbLRmLhMFEqT4urW4QX3ztonUG2Z1ixHqKKSmaoZl3vu2ujOOppc3aQBEfZiYTcyqRhVL674N7hWXUEL99ZL1Dv7BG9CL4M17GQW4HYIDh3xnSBcLaG/ArU5i1/fhPbaUG8Vtp4can63rGzdmpnWFODYZtgRvdoMxPw0aTH6A7ALYEFQtE9b8Y/87f4IPPtU6vgtm94F/G0bxeIsUbI/mKxfW1EZEXwcAx9oULKV5J9cA9iTzUXG46wqVcdVkc73jDmuE7Zgt6aMf4R4936lEtGCOwA/UrDOhRwH3zz0vDMOOwOTI8M5ZXo9O3kgOk70FF3mnxMbvDtXQIdGw=; bm_sv=4DF766EE29692D273EAA33E6125F9753~YAAQhPTfF+q2lUqUAQAANu8dTBof/wNs8oUo7Fh/EBEBGfgOf0TyYS51ZDNNlJzLpT+kFRVQHJx3Fo9yXzgwSMZ3ZNdvtoZEi+GzvCf56BtY6olH9C/QF9sia/yh07Ia3ngaY7xpNLCMd5eU3coFSBUy+FmruMMdSa8v0k1b5tUJ77PqspUvQEd06DRXfiiMQkmFE2bG55tJqVpRcabjD1RNvYRYhIeGQ+ybIkY1pLFCB05lR5wn+szl11y9zJm/0g==~1; tStp=1736443822261; HOWTORT=cl=1736443822256&r=https%3A%2F%2Fwww.naukri.com%2Fpratiti-technologies-jobs%3Fk%3Dpratiti%2520technologies%26nignbevent_src%3DjobsearchDeskGNB&nu=https%3A%2F%2Fwww.naukri.com%2Fmnjuser%2Frecommendedjobs&ul=1736443822280&hd=1736443822314; _ga_K2YBNZVRLL=GS1.1.1736443277.23.1.1736443822.60.0.0",
       Cookie: `nauk_at=${authorization}`,
-        Referer: "https://www.naukri.com/mnjuser/recommendedjobs",
+      Referer: "https://www.naukri.com/mnjuser/recommendedjobs",
       "Referrer-Policy": "strict-origin-when-cross-origin",
     },
-      body: `{"clusterId":"${clusterId}","src":"recommClusterApi","clusterSplitDate":{"apply":"${getFormattedDate()}","preference":"${getFormattedDate()}","profile":"${getFormattedDate()}","similar_jobs":"${getFormattedDate()}"}}`,
+    body: `{"clusterId":"${clusterId}","src":"recommClusterApi","clusterSplitDate":{"apply":"${getFormattedDate()}","preference":"${getFormattedDate()}","profile":"${getFormattedDate()}","similar_jobs":"${getFormattedDate()}"}}`,
     method: "POST",
-  }
-  );
+  });
+};
+
+const getProfileDetailsAPI = async () => {
+  const authorization = localStorage.getItem("authorization");
+  return fetch("https://www.naukri.com/cloudgateway-mynaukri/resman-aggregator-services/v2/users/self?expand_level=4", {
+    "headers": {
+      "accept": "application/json",
+      "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+      "appid": "105",
+      "authorization": `Bearer ${authorization}`,
+      "clientid": "d3skt0p",
+      "content-type": "application/json",
+      "priority": "u=1, i",
+      "sec-ch-ua": "\"Microsoft Edge\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "same-origin",
+      "systemid": "Naukri",
+      "x-requested-with": "XMLHttpRequest",
+      "Referer": "https://www.naukri.com/mnjuser/profile?id=&altresid",
+      "Referrer-Policy": "strict-origin-when-cross-origin"
+    },
+    "body": null,
+    "method": "GET"
+  });
 };
 
 module.exports = {
@@ -244,4 +236,5 @@ module.exports = {
   getSimJobsAPI,
   loginAPI,
   getRecommendedJobsAPI,
+  getProfileDetailsAPI,
 };
