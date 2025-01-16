@@ -3,8 +3,10 @@ const readline = require("readline");
 const { checkSuitability } = require("./gemini");
 const { loginAPI } = require("./api");
 const { get } = require("http");
-const localStorage = require("./localStorage");
+const {localStorage} = require("./helper");
+
 let selectedProfile = null;
+
 // Split an array into chunks of a given size
 const chunkArray = (array, size) => {
   return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
@@ -137,6 +139,7 @@ const selectProfile = async () => {
       selectedProfile = profiles[index - 1];
     }
   }
+  debugger;
   localStorage.setItem("profile", selectedProfile);
   return selectedProfile;
 };

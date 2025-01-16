@@ -42,6 +42,7 @@ const doTheStuff = async (profile) => {
     if (ans.toLowerCase() == "y" || jobIds.length == 0) {
       jobIds = await findNewJobs(noOfPages, repetitions);
     }
+    return;
     for (let i = 0; i < jobIds.length; i++) {
       try {
         const job = jobIds[i];

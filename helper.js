@@ -1,3 +1,18 @@
+const memoryStorage = {};
+
+const localStorage = {
+  setItem: (key, value) => {
+    memoryStorage[key] = value;
+  },
+  getItem: (key) => memoryStorage[key] || null,
+  removeItem: (key) => {
+    delete memoryStorage[key];
+  },
+  clear: () => {
+    Object.keys(memoryStorage).forEach((key) => delete memoryStorage[key]);
+  },
+};
+
 const getFormattedDate = () => {
   const now = new Date();
 
@@ -9,8 +24,9 @@ const getFormattedDate = () => {
   const seconds = String(now.getSeconds()).padStart(2, '0');
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
+};
 
 module.exports = {
   getFormattedDate,
-}
+  localStorage,
+};

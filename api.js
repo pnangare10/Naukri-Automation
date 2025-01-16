@@ -1,5 +1,4 @@
-const { getFormattedDate } = require("./helper");
-const localStorage = require("./localStorage");
+const { getFormattedDate, localStorage } = require("./helper");
 const axiosInstance = require("./apiInstance");
 
 const commonHeaders = {

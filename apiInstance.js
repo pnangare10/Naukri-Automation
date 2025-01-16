@@ -1,5 +1,5 @@
 const axios = require("axios");
-const localStorage = require("./localStorage");
+const {localStorage} = require("./helper");
 
 // Create an Axios instance
 const axiosInstance = axios.create({

@@ -28,8 +28,7 @@ const {
   answerQuestion,
   answerQuestion2,
 } = require("./gemini");
-
-const localStorage = require("./localStorage");
+const {localStorage} = require("./helper");
 
 const login = async (profile) => {
   if (!profile?.creds) {
@@ -82,67 +81,85 @@ const applyForJobs = async (jobs, applyData) => {
   return data;
 };
 
-const getJobInfo = async (jobIds) => {
+const getJobInfo = async (jobIds, batchSize = 5) => {
   const profile = localStorage.getItem("profile");
   const jobInfo = [];
-  for (const jobId of jobIds) {
-    try {
-      const response = await getJobDetailsAPI(jobId);
-      if (response.status == 200) {
-        const data = await response.json();
-        if (data.jobDetails) {
-          const {
-            salaryDetail,
-            applyCount,
-            minimumExperience,
-            videoProfilePreferred,
-            applyRedirectUrl,
-            vacany,
-            createdDate,
-            jobId,
-            jobRole,
-            companyDetail,
-            description,
-            title,
-          } = data.jobDetails;
-          jobInfo.push({
-            minimumSalary: salaryDetail.minimumSalary,
-            maximumSalary: salaryDetail.maximumSalary,
-            applyCount,
-            minimumExperience,
-            videoProfilePreferred,
-            applyRedirectUrl,
-            vacany,
-            createdDate,
-            jobId,
-            jobRole,
-            companyName: companyDetail.name,
-            description,
-            title,
-          });
+
+  try {
+    for (let i = 0; i < jobIds.length; i += batchSize) {
+      const batch = jobIds.slice(i, i + batchSize);
+
+      // Process the current batch in parallel
+      const batchPromises = batch.map(async (jobId) => {
+        try {
+          const response = await getJobDetailsAPI(jobId);
+          if (response.status === 200) {
+            const data = await response.json();
+            if (data.jobDetails) {
+              const {
+                salaryDetail,
+                applyCount,
+                minimumExperience,
+                videoProfilePreferred,
+                applyRedirectUrl,
+                vacany,
+                createdDate,
+                jobId,
+                jobRole,
+                companyDetail,
+                description,
+                title,
+              } = data.jobDetails;
+
+              return {
+                minimumSalary: salaryDetail.minimumSalary,
+                maximumSalary: salaryDetail.maximumSalary,
+                applyCount,
+                minimumExperience,
+                videoProfilePreferred,
+                applyRedirectUrl,
+                vacany,
+                createdDate,
+                jobId,
+                jobRole,
+                companyName: companyDetail.name,
+                description,
+                title,
+              };
+            }
+          } else if (response.status === 403) {
+            console.log("403 Forbidden:", response);
+            throw new Error("403 Forbidden");
+          } else if (response.status === 303) {
+            const data = await response.json();
+            if (data?.metaSearch?.isExpiredJob === "1") {
+              process.stdout.write("Expired Job \r");
+            }
+          }
+          return null; // Return null if no valid job data is found.
+        } catch (error) {
+          console.error(`Error fetching job details for Job ID: ${jobId}`, error);
+          return null; // Return null on error to avoid failing the entire batch.
         }
-      } else if (response.status == 403) {
-        console.log("403 Forbidden : " + response.statusText);
-        throw new Error("403 Forbidden");
-      } else if (response.status == 303) {
-        const data = await response.json();
-        if (data?.metaSearch?.isExpiredJob == "1") {
-          process.stdout.write("Expired Job \r");
-        }
-      }
-      // only print these statement for every 5 jobs or at the end
-      // if (jobInfo.length % 10 == 0 || jobInfo.length == jobIds.length) {
-      process.stdout.write(
-        `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
-      );
-      // }
-      // await new Promise((resolve) => setTimeout(resolve, 50));
-    } catch (e) {
-      console.log(e);
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      debugger;
+      // Add the results of the current batch to the overall jobInfo array
+      jobInfo.push(...batchResults.filter((job) => job !== null));
+
+      // Print progress after each batch
+      process.stdout.write(`Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`);
     }
+
+    // Write the results to a file
+    writeToFile(jobInfo, "searchedJobs", profile.id);
+
+    return jobInfo;
+  } catch (error) {
+    console.error("Unexpected error while fetching job info:", error);
+    throw error;
   }
-  writeToFile(jobInfo, "searchedJobs", profile.id);
-  return jobInfo;
 };
 
 //Search all the jobs
@@ -208,7 +225,6 @@ const searchSimillarJobs = async (jobIds) => {
 };
 
 const getRecommendedJobs = async () => {
-  const jobIds = [];
   const response = await getRecommendedJobsAPI(null);
   if (response.status !== 200) {
     return [];
@@ -218,24 +234,24 @@ const getRecommendedJobs = async () => {
     (cluster) => cluster.clusterId
   ); //["profile", "apply", "preference", "similar_jobs"];
 
-  for (const cluster of clusters) {
+  const jobPromises = clusters.map(async (cluster) => {
     try {
       const response = await getRecommendedJobsAPI(cluster);
       if (response.status !== 200) {
         console.error("Error in fetching recommended jobs:", response);
-        continue;
+        return [];
       }
       const data = await response.json();
-      // ;
-      const jobIdsArr = data.jobDetails?.map((job) => job.jobId);
-      jobIds.push(...(jobIdsArr ?? []));
+      return data.jobDetails?.map((job) => job.jobId) || [];
     } catch (error) {
       console.error(`Error fetching jobs for cluster: ${cluster}`, error);
-      throw error; // Optional: Decide if you want to stop or continue on errors.
+      return []; // Return an empty array on error to avoid failing all promises.
     }
-  }
+  });
 
-  console.log(`Found ${jobIds.length} recommended jobs`);
+  const allJobIds = await Promise.all(jobPromises);
+  debugger;
+  const jobIds = allJobIds.flat(); // Flatten the array of arrays into a single array.
   return jobIds;
 };
 
@@ -378,17 +394,23 @@ const findNewJobs = async (noOfPages, repetitions) => {
   const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
-  const recommendedJobs = await getRecommendedJobs();
-  searchedJobIds.push(...recommendedJobs);
+  getRecommendedJobs().then((recommendedJobs) => {
+    searchedJobIds.push(...recommendedJobs);
+    console.log(`Found ${recommendedJobs.length} recommended jobs`);
+  });
+  const promises = [];
   for (let i = 0; i < noOfPages; i++) {
-    // console.log(`Searching for jobs in page ${i + 1}`);
-    const jobs = await searchJobs(
+    const jobs = searchJobs(
       i + 1,
       profile.desiredRole?.map(encodeURIComponent).join("%2C%20"),
       repetitions
     );
-    searchedJobIds.push(...jobs);
+    promises.push(jobs);
   }
+  const jobs = await Promise.all(promises);
+  jobs.forEach((job) => {
+    searchedJobIds.push(...job);
+  });
   const uniqueJobIds = Array.from(new Set(searchedJobIds));
   console.log(
     `Found total ${searchedJobIds.length} jobs from ${noOfPages} pages out of which ${uniqueJobIds.length} are unique`
