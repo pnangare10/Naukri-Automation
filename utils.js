@@ -74,7 +74,6 @@ const getDataFromFile = async (fileName, profile) => {
 
 const getFileData = async (fileName) => {
   //check if file exists
-  debugger;
   if (!fs.existsSync(`./data/${fileName}.json`)) {
     return;
   }

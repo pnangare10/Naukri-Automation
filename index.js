@@ -25,7 +25,7 @@ const {
   manageProfiles,
 } = require("./jobUtils");
 
-const noOfPages = 1;
+const noOfPages = 5;
 const repetitions = 1;
 const quotaLimit = 50;
 
@@ -116,10 +116,6 @@ const doTheStuff = async (profile) => {
 const startProgram = async () => {
   const args = process.argv.slice(2);
   const command = args[0];
-  const ans = await askQuestion(
-    `Would you like to search for new jobs (Y/N) ?\n`
-  );
-  debugger;
   let loginInfo;
   if (command == "login") {
     loginInfo = await login();

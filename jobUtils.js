@@ -395,9 +395,6 @@ const findNewJobs = async (noOfPages, repetitions) => {
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
   const filteredJobs = filterJobs(jobInfo);
-  if (filteredJobs.length == 0) {
-    return;
-  }
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   return filteredJobs;
 };
@@ -428,7 +425,6 @@ const getUserProfile = async () => {
 
 const getPreferences = async (user) => {
   let preferences = await getDataFromFile("preferences", user.id);
-  debugger;
   if (!preferences) {
     preferences = {};
   }
