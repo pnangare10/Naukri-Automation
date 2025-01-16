@@ -1,6 +1,6 @@
 {
   "name": "naukri-automation-tool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,15 @@
     "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data",
     "dev": "node index.js"
   },
+  "keywords": [
+    "automation",
+    "job-search",
+    "job-application",
+    "naukri",
+    "naukri-automation",
+    "naukri-automation-tool",
+    "automatic job application"
+  ],
   "author": "",
   "license": "ISC",
   "bin": {
