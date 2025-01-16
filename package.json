@@ -1,6 +1,6 @@
 {
-  "name": "automation",
-  "version": "1.0.0",
+  "name": "naukri-automation-tool",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,11 +10,16 @@
   },
   "author": "",
   "license": "ISC",
+  "bin": {
+    "naukri-automation-tool": "index.js"
+  },
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
     "automation": "file:",
     "axios": "^1.7.9",
     "imp": "^0.0.1",
+    "naukri-automation": "file:",
+    "naukri-automation-tool": "file:",
     "node-fetch": "^3.3.2"
   }
 }
