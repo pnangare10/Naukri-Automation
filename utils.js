@@ -36,15 +36,7 @@ const writeToFile = (data, fileName, profile) => {
   if (!fs.existsSync(`./data/${profile}`)) {
     fs.mkdirSync(`./data/${profile}`, { recursive: true });
   }
-  fs.writeFileSync(
-    `./data/${profile}/${fileName}.json`,
-    JSON.stringify(data),
-    (err) => {
-      if (err) {
-        console.error(err);
-      }
-    }
-  );
+  writeFileData(data, `${profile}/${fileName}`);
 };
 
 const writeFileData = (data, fileName) => {
@@ -64,12 +56,7 @@ const getDataFromFile = async (fileName, profile) => {
     profile = await localStorage.getItem("profile");
     profile = profile.id;
   }
-  //check if file exists
-  if (!fs.existsSync(`./data/${profile}/${fileName}.json`)) {
-    return;
-  }
-  const data = fs.readFileSync(`./data/${profile}/${fileName}.json`);
-  return JSON.parse(data);
+  return getFileData(`${profile}/${fileName}`);
 };
 
 const getFileData = async (fileName) => {
