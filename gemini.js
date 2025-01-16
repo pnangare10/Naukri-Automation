@@ -263,7 +263,7 @@ const answerQuestion2 = async (
     response = result.response;
     let answer = response.candidates[0].content.parts[0].text;
     console.log(answer)
-    debugger;
+    ;
     answer = answer.split('```json')[1].split('```')[0];
     const answerObject = await JSON.parse(answer);
     // console.log(answerObject) 
@@ -285,3 +285,54 @@ module.exports = {
   answerQuestion,
   answerQuestion2,
 };
+
+
+SFDC,Salesforce,Aura,Lwc,Apex,Javascript,Visualforce,Lightning
+Salesforce developer, SFDC
+
+{
+  id: "Pranesh Nangare",
+  firstName: "Pranesh",
+  middleName: "Subhash",
+  lastName: "Nangare",
+  gender: "Male",
+  skills:
+    "React Js, Java, Javascript, Material UI, HTML5, CSS, Frontend Development, Redux, Full Stack developer, Bootstrap, jQuery, MySQL, UI Developer, REST",
+  totalExperience: "3 Years",
+  relevantExperience: "3 Years in all mentioned skills",
+  noticePeriod: "2 Months",
+  ownLaptop: "Yes",
+  currentLocation: "Pune, Maharashtra, India",
+  preferredLocation: "Pune / Bangalore / Mumbai",
+  currentCTC: "1011000 / 8.5 LPA",
+  expectedCTC: "1400000 / 12 LPA",
+  panNo: "BRRPN0206L",
+  willingToRelocate: "Yes",
+  visaSponsorship: "No",
+  lastWorkingDay: "28th Feb 2025",
+  "Serving Notice Period": "Yes",
+  keywords: [
+    "react js",
+    "reactjs",
+    "Java",
+    "Java Full Stack",
+    "Java FullStack",
+    "Backend",
+    "Full Stack",
+    "FullStack",
+    "Spring boot",
+    "javascript",
+    "front end",
+    "ui ",
+    "redux",
+    "frontend",
+    "material ui",
+    "html5",
+    "css",
+    "React",
+  ],
+  creds: {
+    username: "praneshnangare10@gmail.com",
+    password: "Pran@1653",
+  },
+},

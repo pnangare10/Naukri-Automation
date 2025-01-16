@@ -12,9 +12,11 @@ const {
 const {
   askQuestion,
   writeToFile,
+  writeFileData,
   chunkArray,
   filterJobs,
   getDataFromFile,
+  getFileData,
   rl,
   selectProfile,
   selectedProfile,
@@ -49,7 +51,11 @@ const login = async (profile) => {
   // writeToFile(cookies.nauk_at, "accessToken", profile.id);
   localStorage.setItem("authorization", cookies.nauk_at);
   console.log("Logged in successfully");
-  return cookies.nauk_at;
+  const loginInfo = {
+    creds: profile.creds,
+    authorization: cookies.nauk_at,
+  };
+  return loginInfo;
 };
 
 // apply for jobs in a string array
@@ -220,7 +226,7 @@ const getRecommendedJobs = async () => {
         continue;
       }
       const data = await response.json();
-      // debugger;
+      // ;
       const jobIdsArr = data.jobDetails?.map((job) => job.jobId);
       jobIds.push(...(jobIdsArr ?? []));
     } catch (error) {
@@ -260,7 +266,7 @@ const handleQuestionnaire2 = async (data) => {
         });
       }
     });
-    // debugger;
+    // ;
     if (questionsToBeAnswered.length > 0) {
       const answeredQuestions = await answerQuestion2(
         questionsToBeAnswered,
@@ -348,7 +354,7 @@ const handleQuestionnaire = async (data) => {
               type: question.questionType,
             };
             writeToFile(questions, "questions", profile.id);
-            // debugger;
+            // ;
           }
         }
         applyData[job.jobId] = { answers: answers };
@@ -363,7 +369,6 @@ const handleQuestionnaire = async (data) => {
 const clearJobs = async () => {
   const profile = await localStorage.getItem("profile");
   console.log("Clearing jobs");
-  console.log(profile);
   writeToFile({}, "searchedJobs", profile.id);
   writeToFile({}, "filteredJobIds", profile.id);
 };
@@ -402,7 +407,7 @@ const getExistingJobs = async () => {
   console.log("Jobs from file : ");
   console.log(jobsFromFile.length);
   const filteredJobs = jobsFromFile?.filter(
-    (job) => job.isSuitable || job.isApplied
+    (job) => (job) => !job.isSuitable || job.isApplied
   );
   if (filteredJobs.length > 0) {
     console.log("Found jobs from file " + filteredJobs.length);
@@ -423,12 +428,19 @@ const getUserProfile = async () => {
 
 const getPreferences = async (user) => {
   let preferences = await getDataFromFile("preferences", user.id);
-
-  if (!preferences.desiredRole)
+  debugger;
+  if (!preferences) {
+    preferences = {};
+  }
+  if (!preferences?.desiredRole)
     preferences.desiredRole = user.profile.desiredRole;
+
+  const desiredRoles = preferences.desiredRole
+    ? preferences.desiredRole.join(", ")
+    : "None";
   let res = await askQuestion(
     `Here are current desired roles:
-    ${preferences.desiredRole ?? "None"}
+    ${desiredRoles}
     Please enter more desired roles
     Hit enter to skip\n`
   );
@@ -439,15 +451,18 @@ const getPreferences = async (user) => {
     });
   }
 
-  if (!preferences.keywords) {
+  if (!preferences?.keywords) {
     preferences.keywords = user.profile.keySkills
       .split(",")
       .map((skill) => skill.trim());
   }
 
+  const keywords = preferences.keywords
+    ? preferences.keywords.join(", ")
+    : "None";
   res = await askQuestion(
     `Current keywords to match the jobs:
-    ${preferences.keywords}
+    ${keywords}
     Please enter more keywords to match the jobs
     Hit enter to skip
     Note: Include variation of the keywords as well to match correctly.\n`
@@ -458,9 +473,7 @@ const getPreferences = async (user) => {
       preferences.keywords.push(keyword.trim());
     });
   }
-
   writeToFile(preferences, "preferences", user.id);
-
   return preferences;
 };
 
@@ -532,6 +545,26 @@ const constructUser = async (apiData) => {
   return user;
 };
 
+const manageProfiles = async (profile, loginInfo) => {
+  const profiles = await getFileData("profiles");
+  const data = {
+    id: profile.id,
+    creds: loginInfo.creds,
+  };
+  if (!profiles) {
+    writeFileData([data], "profiles");
+    return;
+  }
+  const profileIndex = profiles.findIndex((p) => p.id === profile.id);
+
+  if (profileIndex !== -1) {
+    profiles[profileIndex] = { ...profiles[profileIndex], ...data };
+  } else {
+    profiles.push(data);
+  }
+  writeFileData(profiles, "profiles");
+};
+
 module.exports = {
   login,
   applyForJobs,
@@ -546,4 +579,5 @@ module.exports = {
   getExistingJobs,
   getUserProfile,
   constructUser,
+  manageProfiles,
 };

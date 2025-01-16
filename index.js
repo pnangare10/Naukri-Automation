@@ -22,22 +22,20 @@ const {
   applyForJobs,
   login,
   getUserProfile,
+  manageProfiles,
 } = require("./jobUtils");
 
-const { profiles } = require("./data/profiles/profiles");
-
-const noOfPages = 5;
+const noOfPages = 1;
 const repetitions = 1;
-let profile = profiles[0];
 const quotaLimit = 50;
 
 const doTheStuff = async (profile) => {
+  let jobIds = [];
   try {
     console.log("Mission Job search Started...");
     const ans = await askQuestion(
       `Would you like to search for new jobs (Y/N) ?\n`
     );
-    let jobIds = [];
     if (ans.toLowerCase() == "n") {
       jobIds = await getExistingJobs();
     }
@@ -94,7 +92,7 @@ const doTheStuff = async (profile) => {
         } else if (e.message == 403) {
           throw new Error(e);
         } else if (e.message == 401) {
-          // debugger;
+          // ;
           await login();
           i--;
           continue;
@@ -102,7 +100,7 @@ const doTheStuff = async (profile) => {
           console.error(e.message);
         }
       } finally {
-        // debugger;
+        // ;
         jobIds[i].isApplied = true;
         writeToFile(jobIds, "filteredJobIds", profile.id);
       }
@@ -116,20 +114,26 @@ const doTheStuff = async (profile) => {
 };
 
 const startProgram = async () => {
-  const profile1 = await selectProfile();
-  authorization = await login(profile1);
-
   const args = process.argv.slice(2);
   const command = args[0];
-
+  const ans = await askQuestion(
+    `Would you like to search for new jobs (Y/N) ?\n`
+  );
+  debugger;
+  let loginInfo;
   if (command == "login") {
-    await login();
+    loginInfo = await login();
   } else if (command !== "login" && command !== undefined) {
     console.log("Available commands: login");
     system.exit(1);
+  } else {
+    const profile1 = await selectProfile();
+    loginInfo = await login(profile1);
+    authorization = loginInfo.authorization;
   }
 
   const profile = await getUserProfile();
+  manageProfiles(profile, loginInfo);
   doTheStuff(profile);
 };
 

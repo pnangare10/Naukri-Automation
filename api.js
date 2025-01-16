@@ -1,5 +1,6 @@
 const { getFormattedDate } = require("./helper");
 const localStorage = require("./localStorage");
+const axiosInstance = require("./apiInstance");
 
 const applyJobsAPI = async (bodyStr) => {
   const authorization = localStorage.getItem("authorization");

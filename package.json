@@ -13,6 +13,7 @@
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
     "automation": "file:",
+    "axios": "^1.7.9",
     "imp": "^0.0.1",
     "node-fetch": "^3.3.2"
   }

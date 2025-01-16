@@ -1,6 +1,5 @@
 const fs = require("fs");
 const readline = require("readline");
-const { profiles } = require("./data/profiles/profiles");
 const { checkSuitability } = require("./gemini");
 const { loginAPI } = require("./api");
 const { get } = require("http");
@@ -48,18 +47,38 @@ const writeToFile = (data, fileName, profile) => {
   );
 };
 
-// Get the questions from the file and parse into json and return the object
+const writeFileData = (data, fileName) => {
+  fs.writeFileSync(
+    `./data/${fileName}.json`,
+    JSON.stringify(data),
+    (err) => {
+      if (err) {
+        console.error(err);
+      }
+    }
+  );
+};
+
 const getDataFromFile = async (fileName, profile) => {
-  console.log(profile);
   if (profile === undefined) {
     profile = await localStorage.getItem("profile");
     profile = profile.id;
   }
   //check if file exists
   if (!fs.existsSync(`./data/${profile}/${fileName}.json`)) {
-    return [];
+    return;
   }
   const data = fs.readFileSync(`./data/${profile}/${fileName}.json`);
+  return JSON.parse(data);
+};
+
+const getFileData = async (fileName) => {
+  //check if file exists
+  debugger;
+  if (!fs.existsSync(`./data/${fileName}.json`)) {
+    return;
+  }
+  const data = fs.readFileSync(`./data/${fileName}.json`);
   return JSON.parse(data);
 };
 
@@ -68,7 +87,7 @@ const filterJobs = (jobInfo) => {
   const preferredSalary = user.profile.expectedCtc ?? 0;
   const maxTime = 30;
   const maxApplyCount = 10000;
-  const experience = user.profile.totalExperience.year+2 ?? 100;
+  const experience = user.profile.totalExperience.year + 2 ?? 100;
   const videoProfile = false;
   const vacany = 1;
   const filteredJobs = jobInfo
@@ -106,20 +125,24 @@ const filterJobs = (jobInfo) => {
 // select a profile
 const selectProfile = async () => {
   let selectedProfile = null;
-  if (profiles.length === 1) {
-    selectedProfile = profiles[0];
-  }
+  // if (profiles.length === 1) {
+  //   selectedProfile = profiles[0];
+  // }
+  const profiles = await getFileData("profiles");
   if (profiles.length === 0) {
     console.log("No profiles found. Please add profiles to continue.");
-    process.exit(1);
+    return null;
   }
   while (!selectedProfile) {
     const profileNames = profiles?.map(
       (profile, index) => `(${index + 1}) : ${profile.id}`
     );
     const ans = await askQuestion(
-      `Select a profile from the following list:\n${profileNames.join("\n")}\n`
+      `Select a profile from the following list:\n${profileNames.join(
+        "\n"
+      )}\nHit enter to add new profile\n`
     );
+    if (ans === "") return null;
 
     const index = parseInt(ans, 10); // Convert ans to a number
     if (isNaN(index) || index <= 0 || index > profiles.length) {
@@ -173,7 +196,7 @@ const matchingMethods = {
 const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
   const keywordMatchingResult = await matchingMethods.keywords(
     profile.keywords,
-    matchDescription ? jobInfo.description : jobInfo.title
+    matchDescription ? jobInfo.description : jobInfo.jobTitle
   );
   if (keywordMatchingResult) return true;
   // const aiMatchingResult = matchingMethods.ai(jobInfo, profile);
@@ -185,9 +208,11 @@ module.exports = {
   chunkArray,
   askQuestion,
   writeToFile,
+  writeFileData,
   filterJobs,
   rl,
   getDataFromFile,
+  getFileData,
   selectProfile,
   selectedProfile,
   matchingMethods,
