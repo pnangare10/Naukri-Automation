@@ -117,7 +117,7 @@ const selectProfile = async () => {
   //   selectedProfile = profiles[0];
   // }
   const profiles = await getFileData("profiles");
-  if (profiles.length === 0) {
+  if (!profiles || profiles.length === 0) {
     console.log("No profiles found. Please add profiles to continue.");
     return null;
   }
