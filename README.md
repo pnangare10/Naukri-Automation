@@ -15,3 +15,15 @@ Install the tool globally using npm:
 
 ```bash
 npm install -g job-automation-tool
+```
+
+## Usage
+Login:
+```bash
+job-automation-tool login
+```
+## Run the Tool:
+
+```bash
+job-automation-tool
+```
