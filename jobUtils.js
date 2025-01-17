@@ -27,13 +27,18 @@ const {
   checkSuitability,
   answerQuestion,
   answerQuestion2,
+  getGeminiUserConfiguration,
+  initializeGeminiModel,
 } = require("./gemini");
-const {localStorage} = require("./helper");
+const { localStorage } = require("./helper");
+const prompts = require("@inquirer/prompts");
 
 const login = async (profile) => {
   if (!profile?.creds) {
-    const email = await askQuestion("Enter your email : ");
-    const password = await askQuestion("Enter your password : ");
+    const email = await prompts.input({ message: "Enter your email : " });
+    const password = await prompts.password({
+      message: "Enter your password : ",
+    });
     profile = { creds: { username: email, password: password } };
   }
   const response = await loginAPI(profile.creds);
@@ -138,18 +143,23 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
           }
           return null; // Return null if no valid job data is found.
         } catch (error) {
-          console.error(`Error fetching job details for Job ID: ${jobId}`, error);
+          console.error(
+            `Error fetching job details for Job ID: ${jobId}`,
+            error
+          );
           return null; // Return null on error to avoid failing the entire batch.
         }
       });
 
       const batchResults = await Promise.all(batchPromises);
-      debugger;
+      // debugger;
       // Add the results of the current batch to the overall jobInfo array
       jobInfo.push(...batchResults.filter((job) => job !== null));
 
       // Print progress after each batch
-      process.stdout.write(`Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`);
+      process.stdout.write(
+        `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
+      );
     }
 
     // Write the results to a file
@@ -184,17 +194,6 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
       simillarJobs = await searchSimillarJobs(simillarJobs);
       jobIds.push(...simillarJobs);
     }
-    // console.log(
-    //   "Simillar jobs found : " +
-    //     simillarJobs.length +
-    //     " jobs : " +
-    //     jobIds.length
-    // );
-    // const uniqueJobIds = Array.from(new Set(jobIds));
-    console.log(
-      `Found ${jobIds.length} jobs in total from ${repetitions} repetitions on page ${pageNo}`
-    );
-
     return jobIds;
   } catch (error) {
     console.error(error);
@@ -250,7 +249,6 @@ const getRecommendedJobs = async () => {
   });
 
   const allJobIds = await Promise.all(jobPromises);
-  debugger;
   const jobIds = allJobIds.flat(); // Flatten the array of arrays into a single array.
   return jobIds;
 };
@@ -267,7 +265,7 @@ const handleQuestionnaire2 = async (data) => {
       const uniqueQid = `${question.questionName}_${JSON.stringify(
         question.answerOption
       )}`;
-      const que = questions[uniqueQid];
+      const que = questions ? questions[uniqueQid] : null;
       if (que) {
         answers[question.questionId] = que.answer;
         que.options = question.answerOption;
@@ -282,7 +280,6 @@ const handleQuestionnaire2 = async (data) => {
         });
       }
     });
-    // ;
     if (questionsToBeAnswered.length > 0) {
       const answeredQuestions = await answerQuestion2(
         questionsToBeAnswered,
@@ -333,9 +330,9 @@ const handleQuestionnaire = async (data) => {
             // Take the answer from user through console
             // console.log("Please answer the following question");
             // console.log(question.questionName);
-            // const ans = await askQuestion(
+            // const ans = await prompts.input({message:
             //   `${JSON.stringify(question.answerOption)}\n`
-            // );
+            // });
             console.log(
               "Taking help from Recruiter Assistant to answer the question"
             );
@@ -350,7 +347,9 @@ const handleQuestionnaire = async (data) => {
               answer: ans.answer,
             });
 
-            const res = await askQuestion(`Please confirm the answer ?`);
+            const res = await prompts.input({
+              message: `Please confirm the answer ?`,
+            });
             if (res !== "") {
               if (
                 question.questionType === "List Menu" ||
@@ -413,7 +412,7 @@ const findNewJobs = async (noOfPages, repetitions) => {
   });
   const uniqueJobIds = Array.from(new Set(searchedJobIds));
   console.log(
-    `Found total ${searchedJobIds.length} jobs from ${noOfPages} pages out of which ${uniqueJobIds.length} are unique`
+    `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
   const filteredJobs = filterJobs(jobInfo);
@@ -426,7 +425,7 @@ const getExistingJobs = async () => {
   console.log("Jobs from file : ");
   console.log(jobsFromFile.length);
   const filteredJobs = jobsFromFile?.filter(
-    (job) => (job) => !job.isSuitable || job.isApplied
+    (job) => !job.isSuitable || job.isApplied
   );
   if (filteredJobs.length > 0) {
     console.log("Found jobs from file " + filteredJobs.length);
@@ -447,51 +446,134 @@ const getUserProfile = async () => {
 
 const getPreferences = async (user) => {
   let preferences = await getDataFromFile("preferences", user.id);
+  let doConfiguration = preferences ? false : true;
+  if (preferences)
+    doConfiguration = await prompts.confirm({
+      message: "Do you want to configure your preferences ?",
+      default: false,
+    });
   if (!preferences) {
     preferences = {};
   }
+  let matchStrategy = doConfiguration ? null : preferences.matchStrategy;
+  if (!matchStrategy) {
+    matchStrategy = await prompts.select({
+      message: "Select a strategy to match the jobs",
+      choices: [
+        {
+          name: "AI Matching",
+          value: "ai",
+          description: "Use Gen AI model to match the jobs",
+        },
+        {
+          name: "Manual Matching",
+          value: "manual",
+          description: "Manually match the jobs with your confirmation",
+        },
+        {
+          name: "Keywords Matching",
+          value: "keywords",
+          description:
+            "Match the jobs with keywords provided by you and title of the job",
+        },
+      ],
+    });
+    preferences.matchStrategy = matchStrategy;
+  }
+  let enableGenAi = doConfiguration ? null : preferences.enableGenAi;
+  if (enableGenAi === null || enableGenAi === undefined) {
+    enableGenAi = await prompts.confirm({
+      message: "Would you like to enable Gen Ai based question answering ?",
+    });
+    if (enableGenAi || matchStrategy === "ai") {
+      let res = await prompts.select({
+        message: "Please select gen ai model to use",
+        choices: [
+          { name: "Google Gemini Model", value: "gemini" },
+          { name: "ChatGPT", value: "chatgpt" },
+        ],
+      });
+      if (res !== "gemini") {
+        console.log(
+          "There is only gemini model implementation available currently, selecting gemini as default"
+        );
+        res = "gemini";
+      }
+      if (res === "gemini") {
+        const config = await getGeminiUserConfiguration();
+        initializeGeminiModel(config);
+        preferences.genAiConfig = config;
+      }
+      preferences.enableGenAi = true;
+      preferences.genAiModel = res;
+      preferences.matchStrategy = matchStrategy;
+    } else {
+      preferences.enableGenAi = false;
+    }
+  }
+
   if (!preferences?.desiredRole)
     preferences.desiredRole = user.profile.desiredRole;
-
   const desiredRoles = preferences.desiredRole
     ? preferences.desiredRole.join(", ")
     : "None";
-  let res = await askQuestion(
-    `Here are current desired roles:
-    ${desiredRoles}
-    Please enter more desired roles
-    Hit enter to skip\n`
-  );
-
-  if (res !== "") {
-    res.split(",").forEach((role) => {
-      preferences.desiredRole.push(role.trim());
-    });
-  }
 
   if (!preferences?.keywords) {
     preferences.keywords = user.profile.keySkills
       .split(",")
       .map((skill) => skill.trim());
   }
-
   const keywords = preferences.keywords
     ? preferences.keywords.join(", ")
     : "None";
-  res = await askQuestion(
-    `Current keywords to match the jobs:
-    ${keywords}
-    Please enter more keywords to match the jobs
-    Hit enter to skip
-    Note: Include variation of the keywords as well to match correctly.\n`
-  );
 
-  if (res !== "") {
-    res.split(",").forEach((keyword) => {
-      preferences.keywords.push(keyword.trim());
+  if (doConfiguration || (desiredRoles === "None" || keywords === "None")) {
+    let res = await prompts.input({
+      message: `Here are current desired roles:
+    ${desiredRoles}
+    Please enter more desired roles in comma separated format
+    Hit enter to skip\n`,
     });
+    // debugger;
+    if (res !== "") {
+      res.split(",").forEach((role) => {
+        preferences.desiredRole.push(role.trim());
+      });
+    }
+
+    res = await prompts.input({
+      message: `Current keywords to match the jobs:
+    ${keywords}
+    Please enter more keywords to match the jobs in comma separated format
+    Hit enter to skip
+    Note: Include variation of the keywords as well to match correctly.\n`,
+    });
+
+    if (res !== "") {
+      res.split(",").forEach((keyword) => {
+        preferences.keywords.push(keyword.trim());
+      });
+    }
   }
+  if(doConfiguration || preferences.noOfPages || preferences.dailyQuota) {
+    let res = await prompts.number({
+      message: "Enter the number of pages to search for jobs",
+      default: 5,
+      min: 1,
+      max: 10,
+    });
+    preferences.noOfPages = res;
+    res = await prompts.number({
+      message: "Enter the number of jobs to apply for on daily basis",
+      default: 40,
+      min: 1,
+      max: 50,
+    });
+    preferences.dailyQuota = res;
+  }
+
   writeToFile(preferences, "preferences", user.id);
+  localStorage.setItem("preferences", preferences);
   return preferences;
 };
 

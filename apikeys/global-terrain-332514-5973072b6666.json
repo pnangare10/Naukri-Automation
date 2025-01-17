@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "global-terrain-332514",
+  "private_key_id": "5973072b66668194081e4b4703968004fe09accd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDnnWc2gYuoF26u\nr8UtVAGkD4T3bXIuCqmp4GVhCoKoZ7t60dln8lpD1ng647OWpXlG+Rm07xJxOhDS\n8RfySbn5rgTdO80inm2cU13XJGric9pVjTsbSJXzYQg9XkoK1C1RbCb1VA1m6fdq\nCXUDkxb+ugBItk2VKTEzpRbqefCSteDhzXrwaJjatXVq9vuRrDVupafQrigJixYQ\n7q9lCdRspGTZAporzcHEclzDaPrkcDdRE73KMW60GtPpsYSbL3TJdbQjtZmGUCc4\n27KSNXDVLYs8AaPhJarzIUjR5fzGE3/BRguNoF3kNmWNvAHdNch9fbu5EeXIH2md\ngexsk5V9AgMBAAECggEABiG1pMzDLL0KEhfXKX8K2BQNGhvMpQllOnkVVf9YPCsa\n3IKHtefFmfwojK6Qh5Fz53wawR5/J345CcyWLLTk9oYz3MODh8IX9saCOnrdVYdp\npVAq22sNhTbxZ+aCIU1CseAiG+aQwEO7aBQ+A802E6JK9aHV5fgENHDPbX+y7b9U\nAaP9jW8f6DhAp1en1cPaZ3+tC8QQSlBNBIlO9mb/0US5Lw8pkLmOcocmitWLAqOn\n/Kq7BRs9GAr7yhlPRDS5nmtbMKr5asYpbbZE623vWQc8/Of5uS/9Jr+qzq7WrlfT\nryYJZZwz5B5uqbiEq+40/e5auD0roqnaPOzOKepxpQKBgQD7C2MPxVixhPSUdPk2\nfpKUfdf92/zmWh95Hp5Efl+zLCxqyNoIV4QAItVHcAYKa8X9Vz5sZrlf8J6+aBlu\ntxHAP6VoEfRxxShXUdzqzw8UFE4w/OTd/iKXLRIWXgbVaChLwYQYFKJTo5AINK4c\ncfY9B2+brquNKkhWpTpPh/O6rwKBgQDsL9Tr6sccZv5HResBNo7oAg4QJKFQFune\nClEU6/tl0sJGhrzpyTQwSBwdJe2o4erooMEmU/AiWKWSBtFH+24lZKJ3chSoA1H7\nTP9G/sgcR3/ij9PwD+jpK5nP/Bzsd6pG453eRwglpkOvgsjI4CBGiOP6Lh+KXZVt\nvwYWXkONkwKBgQCbjVK0UvPCC0ABPPmuan8ow1EyWz04/l7CDdbDWgqyWoyrHgj7\nYj7IVs0Qlrkne+ASOhzTzlLOv6mdEaOwln7JQKac9YMhe6ijcnYQiHwvVOWeNRUa\n+H02bxbmBRz23rMZPa87vI1YheCZNQstVO/eoNzm+jQSJEDubzLSVMsQwQKBgQDg\nUNFVOsbeZ8cKpBH9NfblzMXUeSWn7gsxsfSt/S3n2BJhbyhOlaR2UpY47MPaCK7V\nP5ASOdgwlqaxmL39MoO7Cefvr66En5qmJMuyftpJWXLRF66/Ki0X/yv3R8ekokZb\nS2StLiNDtrREJd9SQOMGeo6jFlkoTZdVAv7iEabw9wKBgQCofxd/CGU350ljF93D\n5YcST31lgmmFkIOQ6rQ18s8DDAGmx1u/hBO3UNeAuGmcqC4Lt6P9L6IF7J1ztxNe\nyuGtMnwVz+30uiXzXiz86jcvBlrY5mRPzPSWliBKgUTpOKwOiqxL6lno9s8k7TYl\neII7GPHk5qT/C46jawhBwgWvwA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "geminiagent@global-terrain-332514.iam.gserviceaccount.com",
+  "client_id": "114087471092463024087",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/geminiagent%40global-terrain-332514.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

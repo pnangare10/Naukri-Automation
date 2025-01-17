@@ -5,51 +5,172 @@ const {
   VertexAI,
 } = require("@google-cloud/vertexai");
 const { GoogleAuth, GoogleAuthOptions } = require("google-auth-library");
+const prompts = require("@inquirer/prompts");
+const fs = require("fs");
+const path = require("path");
+const { localStorage } = require("./helper");
+let generativeModel = null; // Global variable to store the instance
 
-// const skills = `React Js, Javascript, Material UI, HTML5, CSS, Java, Frontend Development, Redux, Full Stack developer, Bootstrap, jQuery, MySQL, UI Developer, REST`;
-const skills = `HANA Database, HANA landscape, sap bw, sap basis, sap hana, sap hana administration, hana db, sap basis administration, sap basis hana, sap upgrade, sap installation, hana upgrade, sap, basis, S4 Migration, Cloud Connector, System REfresh, System upgrade`;
+/**
+ * Captures user configuration through CLI prompts.
+ */
+const getGeminiUserConfiguration = async (preferences) => {
+  // Get existing preferences
+  if (!preferences) preferences = {};
 
-const description1 = "<p>Askmeoffers.com is a leading online platform that provides users with the latest deals, discounts, and offers from a wide range of online retailers. Our mission is to help users save money and make smart shopping decisions by providing them with the best deals available.</p><br /><p><strong>Position Overview:</strong> We are looking for a skilled and passionate Software Engineer to join our growing team. The ideal candidate will be responsible for designing, developing, and implementing software solutions to meet the needs of our customers and business.</p><br /><p><strong>Responsibilities:</strong></p><ul><li>Collaborate with cross-functional teams to define, design, and ship new features</li><li>Develop high-quality software design and architecture</li><li>Identify, prioritize, and execute tasks in the software development life cycle</li><li>Develop tools and applications by producing clean, efficient code</li><li>Automate tasks through appropriate tools and scripting</li><li>Review and debug code</li><li>Perform validation and verification testing</li><li>Collaborate with internal teams to fix and improve software</li></ul><br /><p><strong>Qualifications:</strong></p><ul><li>Bachelor's degree in Computer Science or related field</li><li>Proven work experience as a Software Engineer or Software Developer</li><li>Experience with software development methodologies and practices</li><li>Strong proficiency in one or more programming languages (e.g., Java, Python, C++)</li><li>Experience with databases and web technologies</li><li>Excellent analytical and problem-solving skills</li><li>Ability to work independently and in a team environment</li><li>Excellent communication skills</li></ul><br /><p><strong>How to Apply:</strong> Interested candidates should send their resume and cover letter to upasana@askmeoffers.com. Please include \"Software Engineer Application\" in the subject line of your email.</p>"
+  const genAiConfig = preferences.genAiConfig || {};
 
-const question = `Select the framework you have worked on.`;
+  // Ensure the apikeys folder exists
+  const apikeysFolderPath = path.join(__dirname, "apiKeys");
+  if (!fs.existsSync(apikeysFolderPath)) {
+    console.log("The 'apiKeys' folder does not exist. Creating it...");
+    fs.mkdirSync(apikeysFolderPath);
+  }
 
-let options = ["React", "Angular", ".Net"];
-const experience = `3 Years`;
+  // Get the list of files in the folder
+  let files = fs
+    .readdirSync(apikeysFolderPath)
+    .filter((file) => file.endsWith(".json"));
 
-const project = "fifth-totality-401110";
-const location = "us-central1";
-const textModel = "gemini-1.0-pro";
+  // If the folder is empty, prompt the user to add key files
+  while (files.length === 0) {
+    console.log("No key files found in the 'apiKeys' folder.");
+    console.log(
+      "Please add your Google Cloud service account key files (.json) to the 'apiKeys' folder."
+    );
 
-const auth = new GoogleAuth({
-  scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  keyFile: "fifth-totality-401110-34ba6376d058.json",
-});
+    const confirmPrompt = await prompts.confirm({
+      type: "confirm",
+      name: "value",
+      message: "Have you added the key file(s) to the folder?",
+    });
 
-const vertexAI = new VertexAI({
-  project: project,
-  location: location,
-  googleAuthOptions: auth,
-});
+    if (!confirmPrompt) {
+      console.log("Operation canceled. Add the key files and try again.");
+      return;
+    }
 
-// Instantiate Gemini models
-const generativeModel = vertexAI.getGenerativeModel({
-  model: textModel,
-  // The following parameters are optional
-  // They can also be passed to individual content generation requests
-  safetySettings: [
-    {
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    },
-  ],
-  generationConfig: { maxOutputTokens: 256 },
-});
+    // Refresh the list of files after confirmation
+    files = fs
+      .readdirSync(apikeysFolderPath)
+      .filter((file) => file.endsWith(".json"));
+  }
 
-const checkSuitability = async (
-  job,
-  profile,
-) => {
-  const prompt = `I'm seeking your assistance in my job application process. I'll provide you with my skills and experience, and your task is to analyze job descriptions to determine their relevance to my skillset. Based on the provided job description, please classify whether the job is suitable for me. If you believe it aligns with my skills, return "yes"; otherwise, return "no".
+  // Present files as choices to the user
+  const keyFilePrompt = await prompts.select({
+    type: "select",
+    name: "value",
+    message: "Select your Google Cloud service account key file:",
+    choices: files.map((file) => ({ name: file, value: file })),
+  });
+
+  const keyFile = path.join(apikeysFolderPath, keyFilePrompt);
+
+  // Extract default project ID from key file name
+  let result = keyFilePrompt.split("-");
+  result = result.slice(0, result.length - 1).join("-");
+  // debugger;
+  console.log(result);
+  // Prompt for configuration details
+  const project = await prompts.input({
+    type: "text",
+    name: "value",
+    message: "Enter your Google Cloud project ID:",
+    default: genAiConfig.project || result,
+    validate: (input) => (input ? true : "Project ID is required."),
+  });
+
+  const location = await prompts.input({
+    type: "text",
+    name: "value",
+    message: "Enter your location (e.g., us-central1):",
+    default: genAiConfig.location || "us-central1",
+  });
+
+  const textModel = await prompts.input({
+    type: "text",
+    name: "value",
+    message: "Enter the text model (e.g., gemini-1.0-pro):",
+    default: genAiConfig.textModel || "gemini-1.0-pro",
+  });
+
+  // Update preferences
+  preferences.genAiConfig = {
+    project,
+    location,
+    textModel,
+    keyFile,
+  };
+
+  return preferences.genAiConfig;
+};
+
+/**
+ * Initializes the generative model instance.
+ */
+const initializeGeminiModel = async (config) => {
+  const auth = new GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    keyFile: config.keyFile,
+  });
+
+  const vertexAI = new VertexAI({
+    project: config.project,
+    location: config.location,
+    googleAuthOptions: auth,
+  });
+
+  generativeModel = vertexAI.getGenerativeModel({
+    model: config.textModel,
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+    ],
+    generationConfig: { maxOutputTokens: 256 },
+  });
+
+  console.log("Generative model initialized successfully.");
+  return generativeModel;
+};
+
+/**
+ * Returns the generative model instance.
+ */
+const getGeminiModel = async () => {
+  try {
+    if (!generativeModel) {
+      preferences = localStorage.getItem("preferences");
+      let config;
+      if (preferences.genAiConfig == undefined) {
+        config = await getGeminiUserConfiguration(preferences);
+        preferences.genAiConfig = config;
+        localStorage.setItem("preferences", preferences);
+      }
+      await initializeGeminiModel(config ?? preferences.genAiConfig);
+
+      const request = {
+        contents: [{ role: "user", parts: [{ text: "Hello How are you" }] }],
+      };
+      const result = await generativeModel.generateContent(request);
+      console.log(result);
+    }
+    return generativeModel;
+  } catch (e) {
+    console.log(e);
+    return null;
+  }
+};
+
+/**
+ * Example function to check job suitability.
+ */
+const checkSuitability = async (job, profile) => {
+  try {
+    const model = getGeminiModel();
+    if (model == null) return null;
+    const prompt = `I'm seeking your assistance in my job application process. I'll provide you with my skills and experience, and your task is to analyze job descriptions to determine their relevance to my skillset. Based on the provided job description, please classify whether the job is suitable for me. If you believe it aligns with my skills, return "yes"; otherwise, return "no".
 
   My Skills: ${JSON.stringify(profile.skills)}
   
@@ -63,8 +184,8 @@ const checkSuitability = async (
     "comments" : "Job description mentions React as a skill which you have mentioned in your skill"
   }
 `;
-  let response;
-  try {
+    let response;
+
     const request = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
     };
@@ -75,8 +196,10 @@ const checkSuitability = async (
     answer = "{" + answer.split("{")[1].split("}")[0] + "}";
     const answerObject = await JSON.parse(answer);
     // console.log(answerObject)
-    if (answerObject.isSuitable == "no" || answerObject.isSuitable == "false") answerObject.isSuitable = false;
-    if (answerObject.isSuitable == "yes" || answerObject.isSuitable == "true") answerObject.isSuitable = true;
+    if (answerObject.isSuitable == "no" || answerObject.isSuitable == "false")
+      answerObject.isSuitable = false;
+    if (answerObject.isSuitable == "yes" || answerObject.isSuitable == "true")
+      answerObject.isSuitable = true;
     return answerObject;
   } catch (e) {
     console.log(
@@ -84,7 +207,7 @@ const checkSuitability = async (
     );
     console.log("Generated content is -> ");
     console.log(response.candidates[0].content.parts[0].text);
-    return;
+    throw e;
   }
 };
 
@@ -92,9 +215,9 @@ const generatePrompt = (profile, askedQuestion, answerOptions = {}) => {
   const hasOptions = Object.keys(answerOptions).length > 0;
 
   return `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. ${
-    hasOptions ? 
-    'If the question has options, return the most suitable option based on my details provided below.' : 
-    'If options are not provided, respond with a one or two-word answer.'
+    hasOptions
+      ? "If the question has options, return the most suitable option based on my details provided below."
+      : "If options are not provided, respond with a one or two-word answer."
   }
   ---------------------------------------------
   
@@ -108,21 +231,29 @@ const generatePrompt = (profile, askedQuestion, answerOptions = {}) => {
   Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
   Your output will be parsed and type-checked. Make sure that there are no trailing commas!
   do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
-  {"question": "What is your notice period?","answer": ${hasOptions ? '["2 Months"]' : '"2 Months"'}, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
+  {"question": "What is your notice period?","answer": ${
+    hasOptions ? '["2 Months"]' : '"2 Months"'
+  }, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
   
-  The "answer" field in the response object should be ${hasOptions ? 'an array if options are provided.' : 'a string if options are not provided.'}
+  The "answer" field in the response object should be ${
+    hasOptions
+      ? "an array if options are provided."
+      : "a string if options are not provided."
+  }
   
   For example:
   ${
-    hasOptions 
-      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }` 
+    hasOptions
+      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }`
       : `If options are not provided: { "answer": "2 Months", ...remaining fields }`
   }
   
   Here is the question asked by the recruiter: "${askedQuestion}"
   ${
     hasOptions
-      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(answerOptions)}". Your answer field should be an array. Answer should be in [""] format.`
+      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(
+          answerOptions
+        )}". Your answer field should be an array. Answer should be in [""] format.`
       : `Options are not provided, answer with a one or two-word response.`
   }
   `;
@@ -132,9 +263,9 @@ const generatePrompt2 = (profile, askedQuestion) => {
   const hasOptions = Object.keys(answerOptions).length > 0;
 
   return `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. ${
-    hasOptions ? 
-    'If the question has options, return the most suitable option based on my details provided below.' : 
-    'If options are not provided, respond with a one or two-word answer.'
+    hasOptions
+      ? "If the question has options, return the most suitable option based on my details provided below."
+      : "If options are not provided, respond with a one or two-word answer."
   }
   ---------------------------------------------
   
@@ -148,21 +279,29 @@ const generatePrompt2 = (profile, askedQuestion) => {
   Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
   Your output will be parsed and type-checked. Make sure that there are no trailing commas!
   do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
-  {"question": "What is your notice period?","answer": ${hasOptions ? '["2 Months"]' : '"2 Months"'}, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
+  {"question": "What is your notice period?","answer": ${
+    hasOptions ? '["2 Months"]' : '"2 Months"'
+  }, "confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
   
-  The "answer" field in the response object should be ${hasOptions ? 'an array if options are provided.' : 'a string if options are not provided.'}
+  The "answer" field in the response object should be ${
+    hasOptions
+      ? "an array if options are provided."
+      : "a string if options are not provided."
+  }
   
   For example:
   ${
-    hasOptions 
-      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }` 
+    hasOptions
+      ? `If options are provided: { "answer": ["2 Months"], ...remaining fields }`
       : `If options are not provided: { "answer": "2 Months", ...remaining fields }`
   }
   
   Here is the question asked by the recruiter: "${askedQuestion}"
   ${
     hasOptions
-      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(answerOptions)}". Your answer field should be an array. Answer should be in [""] format.`
+      ? `Here are the options from which you have to select the most suitable option: "${JSON.stringify(
+          answerOptions
+        )}". Your answer field should be an array. Answer should be in [""] format.`
       : `Options are not provided, answer with a one or two-word response.`
   }
   `;
@@ -173,28 +312,28 @@ const answerQuestion = async (
   answerOptions = options,
   profile
 ) => {
-  // const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below. 
+  // const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below.
 
   // ---------------------------------------------
-  
+
   // My Details:
   // ${JSON.stringify(profile)}
-  
+
   // -------------------------------------------------
-  
+
   // Mention the experience as '0' for the skills which are not mentioned in the skills list.
   // If you are not sure about the question or you do not have enough information, respond with 'NA'. Do not answer the question unless you are 100% sure. Do not consider anything on your own. Use the details mentioned above to answer.
-  // Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse. 
+  // Your response should be strictly in JSON object value that can be parsed directly in JavaScript using JSON.parse.
   // Your output will be parsed and type-checked. Make sure that there are no trailing commas!
   // do not include any new line characters. Your response should be plain text in one line without any json formatting. Do not use \% symbol in confidence field value. Do not include any text and commas before and after the brackets The JSON object should be in the format:
   // {"question": "What is your notice period?","answer": ["2 Months"],"confidence": "80%","comments": "Your notice period is 2 months based on the details provided."}
-  
+
   // The "answer" field in the response object should be an array if options are provided. If options are not provided, it should be a string.
-  
+
   // For example:
   // If options are provided: { "answer": ["2 Months"], ...remaining fields }
   // If options are not provided: { "answer": "2 Months", ...remaining fields }
-  
+
   // Here is the question asked by the recruiter: "${askedQuestion}"
   // ${
   //   Object.keys(answerOptions).length
@@ -214,7 +353,7 @@ const answerQuestion = async (
     // console.log(answer)
     answer = "{" + answer.split("{")[1].split("}")[0] + "}";
     const answerObject = await JSON.parse(answer);
-    // console.log(answerObject) 
+    // console.log(answerObject)
     // console.log([askedQuestion, answerOptions, answerObject]);
     return answerObject;
   } catch (e) {
@@ -225,10 +364,9 @@ const answerQuestion = async (
   }
 };
 
-const answerQuestion2 = async (
-  questionsToBeAnswered = question,
-  profile
-) => {
+const answerQuestion2 = async (questionsToBeAnswered = question, profile) => {
+  const model = await getGeminiModel();
+  if (model == null) return null;
   const prompt = `I want you to be my job search assistant. I am applying for a job. The recruiter has asked me a question. If the question has options, return the most suitable option based on my details provided below. 
 
   ---------------------------------------------
@@ -251,7 +389,9 @@ const answerQuestion2 = async (
   If options are provided: { "answer": ["2 Months"], ...remaining fields }
   If options are not provided: { "answer": "2 Months", ...remaining fields }
   
-  Here are the questions asked by the recruiter: "${JSON.stringify(questionsToBeAnswered)}"
+  Here are the questions asked by the recruiter: "${JSON.stringify(
+    questionsToBeAnswered
+  )}"
   `;
   let response;
   // const prompt = generatePrompt(profile, askedQuestion, answerOptions);
@@ -262,11 +402,10 @@ const answerQuestion2 = async (
     const result = await generativeModel.generateContent(request);
     response = result.response;
     let answer = response.candidates[0].content.parts[0].text;
-    console.log(answer)
-    ;
-    answer = answer.split('```json')[1].split('```')[0];
+    console.log(answer);
+    answer = answer.split("```json")[1].split("```")[0];
     const answerObject = await JSON.parse(answer);
-    // console.log(answerObject) 
+    // console.log(answerObject)
     // console.log([askedQuestion, answerOptions, answerObject]);
     return answerObject;
   } catch (e) {
@@ -279,9 +418,10 @@ const answerQuestion2 = async (
 // checkSuitability();
 // answerQuestion();
 module.exports = {
-  skills,
-  experience,
   checkSuitability,
   answerQuestion,
   answerQuestion2,
+  getGeminiUserConfiguration,
+  initializeGeminiModel,
+  getGeminiModel,
 };

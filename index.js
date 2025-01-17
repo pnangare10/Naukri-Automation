@@ -25,26 +25,31 @@ const {
   login,
   getUserProfile,
   manageProfiles,
+  handleQuestionnaire2,
 } = require("./jobUtils");
+const prompts = require("@inquirer/prompts");
+const { localStorage } = require("./helper");
 
 const noOfPages = 5;
 const repetitions = 1;
-const quotaLimit = 50;
+const quotaLimit = 40;
 
 const doTheStuff = async (profile) => {
+  const preferences = localStorage.getItem("preferences");
+  const {noOfPages, dailyQuota} = preferences;
   let jobIds = [];
   try {
     console.log("Mission Job search Started...");
-    const ans = await askQuestion(
-      `Would you like to search for new jobs (Y/N) ?\n`
-    );
-    if (ans.toLowerCase() == "n") {
+    const ans = await prompts.confirm({
+      message: `Would you like to search for new jobs?`,
+      default: true,
+    });
+    if (!ans) {
       jobIds = await getExistingJobs();
     }
-    if (ans.toLowerCase() == "y" || jobIds.length == 0) {
+    if (ans || jobIds.length == 0) {
       jobIds = await findNewJobs(noOfPages, repetitions);
     }
-    return;
     for (let i = 0; i < jobIds.length; i++) {
       try {
         const job = jobIds[i];
@@ -82,20 +87,28 @@ const doTheStuff = async (profile) => {
           console.log(
             `Applied successfully | Quota: ${result.quotaDetails.dailyApplied}`
           );
-          if (result.quotaDetails.dailyApplied >= quotaLimit) {
+          if (result.quotaDetails.dailyApplied >= dailyQuota) {
             console.log("Daily quota reached");
             break;
           }
           jobIds[i].isApplied = true;
         }
-        // console.log("\n");
+        if (result.jobs[0].status !== 200 && preferences.enableGenAi) {
+          const questionnaire = await handleQuestionnaire2(result);
+          const finalResult = await applyForJobs(jobsSlot, questionnaire);
+          if (finalResult.jobs[0].status == 200) {
+            console.log(
+              `Applied successfully | Quota: ${finalResult.quotaDetails.dailyApplied}`
+            );
+            jobIds[i].isApplied = true;
+          }
+        }
       } catch (e) {
         if (e.message == 200 || e.message == 409001) {
           console.error(e.message);
         } else if (e.message == 403) {
           throw new Error(e);
         } else if (e.message == 401) {
-          // ;
           await login();
           i--;
           continue;
@@ -103,8 +116,6 @@ const doTheStuff = async (profile) => {
           console.error(e.message);
         }
       } finally {
-        // ;
-        jobIds[i].isApplied = true;
         writeToFile(jobIds, "filteredJobIds", profile.id);
       }
     }
@@ -117,23 +128,27 @@ const doTheStuff = async (profile) => {
 };
 
 const startProgram = async () => {
-  const args = process.argv.slice(2);
-  const command = args[0];
-  let loginInfo;
-  if (command == "login") {
-    loginInfo = await login();
-  } else if (command !== "login" && command !== undefined) {
-    console.log("Available commands: login");
-    system.exit(1);
-  } else {
-    const profile1 = await selectProfile();
-    loginInfo = await login(profile1);
-    authorization = loginInfo.authorization;
-  }
+  try {
+    const args = process.argv.slice(2);
+    const command = args[0];
+    let loginInfo;
+    if (command == "login") {
+      loginInfo = await login();
+    } else if (command !== "login" && command !== undefined) {
+      console.log("Available commands: login");
+      system.exit(1);
+    } else {
+      const profile1 = await selectProfile();
+      loginInfo = await login(profile1);
+      authorization = loginInfo.authorization;
+    }
 
-  const profile = await getUserProfile();
-  manageProfiles(profile, loginInfo);
-  doTheStuff(profile);
+    const profile = await getUserProfile();
+    manageProfiles(profile, loginInfo);
+    doTheStuff(profile);
+  } catch (e) {
+    process.exit(1);
+  }
 };
 
 startProgram();

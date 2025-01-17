@@ -3,7 +3,8 @@ const readline = require("readline");
 const { checkSuitability } = require("./gemini");
 const { loginAPI } = require("./api");
 const { get } = require("http");
-const {localStorage} = require("./helper");
+const { localStorage } = require("./helper");
+const prompts = require("@inquirer/prompts");
 
 let selectedProfile = null;
 
@@ -42,15 +43,11 @@ const writeToFile = (data, fileName, profile) => {
 };
 
 const writeFileData = (data, fileName) => {
-  fs.writeFileSync(
-    `./data/${fileName}.json`,
-    JSON.stringify(data),
-    (err) => {
-      if (err) {
-        console.error(err);
-      }
+  fs.writeFileSync(`./data/${fileName}.json`, JSON.stringify(data), (err) => {
+    if (err) {
+      console.error(err);
     }
-  );
+  });
 };
 
 const getDataFromFile = async (fileName, profile) => {
@@ -122,15 +119,16 @@ const selectProfile = async () => {
     return null;
   }
   while (!selectedProfile) {
-    const profileNames = profiles?.map(
-      (profile, index) => `(${index + 1}) : ${profile.id}`
-    );
-    const ans = await askQuestion(
-      `Select a profile from the following list:\n${profileNames.join(
-        "\n"
-      )}\nHit enter to add new profile\n`
-    );
-    if (ans === "") return null;
+    const profileOptions = profiles?.map((profile, index) => ({
+      name: profile.id,
+      value: index + 1,
+    }));
+    profileOptions.push({ name: "Create New Profile", value: -1 });
+    const ans = await prompts.select({
+      message: `Select a profile from the following list`,
+      choices: profileOptions,
+    });
+    if (ans === -1) return null;
 
     const index = parseInt(ans, 10); // Convert ans to a number
     if (isNaN(index) || index <= 0 || index > profiles.length) {
@@ -139,7 +137,6 @@ const selectProfile = async () => {
       selectedProfile = profiles[index - 1];
     }
   }
-  debugger;
   localStorage.setItem("profile", selectedProfile);
   return selectedProfile;
 };
@@ -148,9 +145,9 @@ const matchKeywords = async (keywords, jobKeywords) => {
   if (!keywords || keywords.length === 0) {
     preferences = await getDataFromFile("preferences");
     if (!preferences.keywords || preferences.keywords.length === 0) {
-      const res = await askQuestion(
-        "Please enter keywords to match with job description\n"
-      );
+      const res = await prompts.input({
+        message: "Please enter keywords to match with job description\n",
+      });
       keywords = res.split(",");
       const preferences = getDataFromFile("preferences");
       preferences.keywords = keywords;
@@ -166,14 +163,21 @@ const matchKeywords = async (keywords, jobKeywords) => {
 };
 
 const aiMatching = async (jobInfo, profile) => {
-  const res = await checkSuitability(jobInfo, profile);
-  return res.isSuitable;
+  try {
+    const res = await checkSuitability(jobInfo, profile);
+    return res.isSuitable;
+  } catch (e) {
+    console.log("Error in AI matching, Switching to manual matching");
+    manualMatching(jobInfo);
+  }
 };
 
 const manualMatching = async (jobInfo) => {
-  const res = await askQuestion(`Is this job suitable ?\n`);
-  if (res !== "") return false;
-  return true;
+  const res = await prompts.confirm({
+    message: `Is this job suitable ?`,
+    default: true,
+  });
+  return res;
 };
 
 const matchingMethods = {
@@ -183,14 +187,26 @@ const matchingMethods = {
 };
 
 const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
-  const keywordMatchingResult = await matchingMethods.keywords(
-    profile.keywords,
-    matchDescription ? jobInfo.description : jobInfo.jobTitle
-  );
-  if (keywordMatchingResult) return true;
-  // const aiMatchingResult = matchingMethods.ai(jobInfo, profile);
-  // return aiMatchingResult;
-  return false;
+  const preferences = await getDataFromFile("preferences");
+  let matchingResult = false;
+  let matchStrategy = "keywords";
+  if (preferences && preferences.matchStrategy)
+    matchStrategy = preferences.matchStrategy;
+  switch (matchStrategy) {
+    case "ai":
+      matchingResult = await matchingMethods.aiMatching(jobInfo, profile);
+      break;
+    case "manual":
+      matchingResult = await matchingMethods.manualMatching(jobInfo);
+      break;
+    default:
+      matchingResult = await matchingMethods.keywords(
+        profile.keywords,
+        matchDescription ? jobInfo.description : jobInfo.jobTitle
+      );
+  }
+
+  return matchingResult;
 };
 
 module.exports = {

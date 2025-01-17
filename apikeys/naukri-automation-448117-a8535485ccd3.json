@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "naukri-automation-448117",
+  "private_key_id": "a8535485ccd3cc34a99f05b59cad8e5807c6ab08",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDBHu7ufkExLyPV\n9XmU4wuOq7EM+EPyTZVlU30u8PAzmyuTI5itLjnM+BGph5GQRGEmxQ/Ue5cTR33n\nkeAD1kSh1hofmgPViiXL/mBOiYDkLRuNYXYT3BKkYLU6QuXx0o0zCWoZpE4WLMkt\n30IN/BVd7vnEQ9orqtIpdwNXMB30nYsGxQoj9cMzXgBa/yiIfH1ELonb6WvuMUbv\nc3fU/WXmsCBK1ib9B34/coo3QTbQ/Sj34r3y7cxnWB6IVT3EfWUBtERj41kNToSx\ntU4mlbrTTT2jorrO8Y6/fLD53v8Fq8upBjEA/X3YjpQxGHAtP+/y5Bi4oZrhrR8x\naugKpYgLAgMBAAECggEAWcgLxIylujv0KRBKSdGUGevwD9uLmyY+gjDiTeRth1Bo\nXat622hWLthVPb9tCOkBUYjj5yDeB3SBMBs9TgtbNPHYi0CK78ed8sx78YcziOD/\noibhQjJZ6FmdZ0yaomYEhumlje4470466TyV9PJw7I6hR4FT+GEd+3D8+JfCFWop\n58tbb9pyYxCuTvnKXRfi7I7HUss/3plD2CRaisKACv3NVf6SqEHMPh9vRGIG1bQb\n7w90v4XlnHPMHI1/QAt7ACCfPVuiOOYp0yFwgoMecyTE7pwTZO0W8VjJYAEF5rR0\nd0mzNwbHfgSA764TBs1xoqyvBlXUYnYm9lgh2qHu4QKBgQDh11fjhkWU1VQZ35GG\njewAxdw/yW8V4OjkSleRnqfWFYecedhVRVxv+36USK2MuB/65K5JMHTuIHAL/ZWx\nsZjk7Rp0hVvk5OXYz1zdeSqJDtjKWt7kzlVLJraWAH45y7/bbODJ0faSgAhoTgm+\nQxnQu53kDgpayKZa7rihoKHrDwKBgQDa6QE9G2ddeXiyoFSD+avx2jpTvQWoJKpE\nli9WGqpM2vTjgMR6CpPtsu7F8JUdv4GmGY/oarr3u55uKEKfwXfzf0dxCqI1xmbV\naf9pr+iutO8fZrxbn5xVFiviXrBoZoBDFVfURcN6et9g66LSI2otMj88AFqYyh/t\nhzuZksADRQKBgCL3d4knyfAwU3QqFFsT8D1yZRaPNp7ZktV92S8XtH7GGJgWmXMi\naRyBgOiulAhcnb731zBHy2LvLMn+ekXn7HdNarItz7uR4TB/cq5ryzUrUk+KYEZm\n1/fpx41UCDckn9D2e5tj4dxu7F5R7tpBg2a5FcowjlPeCzu7CGUl/MvrAoGBALCH\nb1FItP0jBJr/Qcg/YVIiCiEW7+Xc01WFytxjmmtpskt3vnkv6ISpY3VJgeZAVZuN\nR4hD8UvvB16LptZPXJyGSiU1TwOQX8K/vJEMotWn4KDw5vn350iSHYdpllZKOipe\nnrn2HCG7zkDJJD7TAj86ItYO7wABFugjwoMgXSkFAoGAEcJ4DNRhsg0/hIwWViwM\nNmhDorBTQaNOHnOhF9kbCzjRQTRjCYZ+ZlU+x3P45vvRlatc1UY9yw21rrKQ57CF\n+nez3ghkzZhs433kYIAUePDHOCM+ypvEboz1ofrxyiQpcIh5+oGLDtuxfjKCluY6\nl+rdPc2It7fBiJnIbj+dyG8=\n-----END PRIVATE KEY-----\n",
+  "client_email": "naukri-account@naukri-automation-448117.iam.gserviceaccount.com",
+  "client_id": "103710534667756152135",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/naukri-account%40naukri-automation-448117.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

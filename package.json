@@ -24,9 +24,11 @@
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
+    "@inquirer/prompts": "^7.2.3",
     "automation": "file:",
     "axios": "^1.7.9",
     "imp": "^0.0.1",
+    "inquirer": "^12.3.2",
     "naukri-automation": "file:",
     "naukri-automation-tool": "file:",
     "node-fetch": "^3.3.2"
