@@ -1,5 +1,5 @@
 {
-  "name": "naukri-automation-tool",
+  "name": "job-automation-tool",
   "version": "1.1.1",
   "description": "",
   "main": "index.js",
@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "bin": {
-    "naukri-automation-tool": "index.js"
+    "job-automation-tool": "index.js"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
@@ -29,8 +29,8 @@
     "axios": "^1.7.9",
     "imp": "^0.0.1",
     "inquirer": "^12.3.2",
-    "naukri-automation": "file:",
-    "naukri-automation-tool": "file:",
+    "job-automation": "file:",
+    "job-automation-tool": "file:",
     "node-fetch": "^3.3.2"
   }
 }
