@@ -1,3 +1,4 @@
 data
 .env
 node_modules
+apikeys
