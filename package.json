@@ -1,11 +1,12 @@
 {
-  "name": "job-automation-tool",
-  "version": "1.1.2",
-  "description": "",
+  "name": "naukri-automation-tool",
+  "version": "1.0.0",
+  "description": "Naukri automation tool to fetch, filter, and apply for jobs automatically using gen ai.",
   "main": "index.js",
+  "author": "Pranesh Nangare",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data",
+    "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data --trace-warnings",
     "dev": "node index.js"
   },
   "keywords": [
@@ -17,20 +18,13 @@
     "naukri-automation-tool",
     "automatic job application"
   ],
-  "author": "",
   "license": "ISC",
   "bin": {
-    "job-automation-tool": "index.js"
+    "naukri-automation-tool": "index.js"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
     "@inquirer/prompts": "^7.2.3",
-    "automation": "file:",
-    "axios": "^1.7.9",
-    "imp": "^0.0.1",
-    "inquirer": "^12.3.2",
-    "job-automation": "file:",
-    "job-automation-tool": "file:",
-    "node-fetch": "^3.3.2"
+    "naukri-automation-tool": "file:"
   }
 }
