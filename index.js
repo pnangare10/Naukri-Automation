@@ -129,6 +129,7 @@ const startProgram = async () => {
       const profile1 = await selectProfile();
       loginInfo = await login(profile1);
       authorization = loginInfo.authorization;
+      localStorage.setItem("authorization", authorization);
     }
 
     const { user, preferences } = await getUserProfile();

@@ -135,7 +135,6 @@ const selectProfile = async () => {
       selectedProfile = profiles[index - 1];
     }
   }
-  localStorage.setItem("profile", selectedProfile);
   return selectedProfile;
 };
 

@@ -53,7 +53,6 @@ const login = async (profile) => {
   });
 
   // writeToFile(cookies.nauk_at, "accessToken", profile.id);
-  localStorage.setItem("authorization", cookies.nauk_at);
   console.log("Logged in successfully");
   const loginInfo = {
     creds: profile.creds,
