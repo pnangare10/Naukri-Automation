@@ -20,7 +20,7 @@ const getGeminiUserConfiguration = async (preferences) => {
   const genAiConfig = preferences.genAiConfig || {};
 
   // Ensure the apikeys folder exists
-  const apikeysFolderPath = path.join(__dirname, "apiKeys");
+  const apikeysFolderPath = path.join(__dirname, "apikeys");
   if (!fs.existsSync(apikeysFolderPath)) {
     console.log("The 'apiKeys' folder does not exist. Creating it...");
     fs.mkdirSync(apikeysFolderPath);
@@ -33,9 +33,9 @@ const getGeminiUserConfiguration = async (preferences) => {
 
   // If the folder is empty, prompt the user to add key files
   while (files.length === 0) {
-    console.log("No key files found in the 'apiKeys' folder.");
+    console.log("No key files found in the 'apikeys' folder.");
     console.log(
-      "Please add your Google Cloud service account key files (.json) to the 'apiKeys' folder."
+      "Please add your Google Cloud service account key files (.json) to the 'apikeys' folder."
     );
 
     const confirmPrompt = await prompts.confirm({

@@ -20,10 +20,10 @@ npm install -g job-automation-tool
 ## Usage
 Login:
 ```bash
-job-automation-tool login
+naukri-automation-tool login
 ```
 ## Run the Tool:
 
 ```bash
-job-automation-tool
+naukri-automation-tool
 ```
