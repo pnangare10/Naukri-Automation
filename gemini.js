@@ -7,7 +7,7 @@ const { GoogleAuth } = require("google-auth-library");
 const prompts = require("@inquirer/prompts");
 const fs = require("fs");
 const path = require("path");
-const { localStorage } = require("./helper");
+const { localStorage, openFolder, openUrl } = require("./helper");
 const aiPrompts = require("./prompts");
 let generativeModel = null; // Global variable to store the instance
 
@@ -21,10 +21,6 @@ const getGeminiUserConfiguration = async (preferences) => {
 
   // Ensure the apikeys folder exists
   const apikeysFolderPath = path.join(__dirname, "apikeys");
-  if (!fs.existsSync(apikeysFolderPath)) {
-    console.log("The 'apiKeys' folder does not exist. Creating it...");
-    fs.mkdirSync(apikeysFolderPath);
-  }
 
   // Get the list of files in the folder
   let files = fs
@@ -37,17 +33,57 @@ const getGeminiUserConfiguration = async (preferences) => {
     console.log(
       "Please add your Google Cloud service account key files (.json) to the 'apikeys' folder."
     );
+    console.log("Let me guide you step by step.");
+    console.log(`1. Log In: Go to Google Cloud Console and log in.
+2. Navigate to IAM & Admin: From the left-hand menu, go to IAM & Admin > Service Accounts.
+3. Select Service Account: Find and click on the service account for which you need the key.
+4. Manage Keys: Under the "Keys" section, click Add Key > Create new key.
+5. Choose Key Type: Select the JSON option and click Create.
+6. Copy the Key: Copy and paste the JSON key file into the "apikeys" folder.`);
+    openUrl(
+      `https://console.cloud.google.com/iam-admin/serviceaccounts/create`
+    );
+    let confirmPrompt = await prompts.confirm({
+      type: "confirm",
+      name: "value",
+      message: "Were you able to download the api key file?",
+      default: true,
+    });
 
-    const confirmPrompt = await prompts.confirm({
+    console.log("7. Paste api key file in apikeys folder");
+    if (!fs.existsSync(apikeysFolderPath)) {
+      console.log("The 'apiKeys' folder does not exist. Creating it...");
+      fs.mkdirSync(apikeysFolderPath);
+    }
+    await openFolder(apikeysFolderPath);
+    confirmPrompt = await prompts.confirm({
       type: "confirm",
       name: "value",
       message: "Have you added the key file(s) to the folder?",
+      default: true,
     });
 
-    if (!confirmPrompt) {
-      console.log("Operation canceled. Add the key files and try again.");
-      return;
-    }
+    console.log(`8. Enable Vertex AI API from API's and Services Section.`);
+    openUrl(
+      `https://console.cloud.google.com/apis/library/aiplatform.googleapis.com`
+    );
+    confirmPrompt = await prompts.confirm({
+      type: "confirm",
+      name: "value",
+      message: "Were you able to enable the Vertext AI API?",
+      default: true,
+    });
+
+    console.log(`9. Enable Gemini API from API's and Services Section.`);
+    openUrl(
+      `https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`
+    );
+    confirmPrompt = await prompts.confirm({
+      type: "confirm",
+      name: "value",
+      message: "Were you able to enable the Gemini API?",
+      default: true,
+    });
 
     // Refresh the list of files after confirmation
     files = fs
@@ -101,8 +137,21 @@ const getGeminiUserConfiguration = async (preferences) => {
     textModel,
     keyFile,
   };
+  try {
+    console.log("Pinging gemini model ...");
+    await initializeGeminiModel(preferences.genAiConfig);
+    await pingModel();
+    preferences.enableGenAi = true;
+  } catch (e) {
+    let choice = await prompts.select({
+      message: "Would you like to do configuration again or disable Gen AI application?",
+      choices: [{name: "Do configuration", value: "configure"}, {name: "Disable Gen AI", value: "disable"}]
+    });
+    if(choice === "configure") await getGeminiUserConfiguration(preferences);
+    else preferences.enableGenAi = false;
+  }
 
-  return preferences.genAiConfig;
+  return {config:preferences.genAiConfig, enableGenAi: preferences.enableGenAi};
 };
 
 /**
@@ -142,13 +191,14 @@ const getGeminiModel = async () => {
   try {
     if (!generativeModel) {
       const preferences = localStorage.getItem("preferences");
-      let config;
       if (preferences.genAiConfig === undefined) {
-        config = await getGeminiUserConfiguration(preferences);
+        const {config, enableGenAi} = await getGeminiUserConfiguration(preferences);
         preferences.genAiConfig = config;
+        preferences.enableGenAi = enableGenAi;
         localStorage.setItem("preferences", preferences);
+        writeToFile(preferences, "preferences");
       }
-      await initializeGeminiModel(config ?? preferences.genAiConfig);
+      await initializeGeminiModel(preferences.genAiConfig);
     }
     return generativeModel;
   } catch (e) {
@@ -164,7 +214,10 @@ const checkSuitability = async (job, profile) => {
   try {
     const model = getGeminiModel();
     if (model == null) return null;
-    const prompt = aiPrompts.jobSuitabilityPrompt(profile.skills, job.description);
+    const prompt = aiPrompts.jobSuitabilityPrompt(
+      profile.skills,
+      job.description
+    );
     let response;
 
     const request = {
@@ -213,6 +266,34 @@ const answerQuestion = async (questions, profileDetails) => {
     console.log("The answer is -> ");
     console.log(response.candidates[0].content.parts[0].text);
     return;
+  }
+};
+
+const pingModel = async () => {
+  try {
+    let response;
+    const model = await getGeminiModel();
+    if (model == null) return null;
+    const request = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: "You are a Job search assistant, Greet the user with your name",
+            },
+          ],
+        },
+      ],
+    };
+    const result = await generativeModel.generateContent(request);
+    response = result.response;
+    let answer = response.candidates[0].content.parts[0].text;
+    console.log(answer);
+  } catch (e) {
+    console.log("Error while generating Assistant response: ");
+    console.log(e);
+    throw e;
   }
 };
 

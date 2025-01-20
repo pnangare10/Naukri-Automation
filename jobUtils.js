@@ -18,9 +18,9 @@ const {
   compressProfile,
 } = require("./utils");
 const {
-  answerQuestion2,
   getGeminiUserConfiguration,
   initializeGeminiModel,
+  answerQuestion,
 } = require("./gemini");
 const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
@@ -282,7 +282,7 @@ const handleQuestionnaire = async (data) => {
       }
     });
     if (questionsToBeAnswered.length > 0) {
-      const answeredQuestions = await answerQuestion2(
+      const answeredQuestions = await answerQuestion(
         questionsToBeAnswered,
         updatedProfile
       );
