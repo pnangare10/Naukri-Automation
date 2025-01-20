@@ -3,29 +3,21 @@ const {
   searchJobsAPI,
   getJobDetailsAPI,
   getSimJobsAPI,
-  loginAgainAPI,
   loginAPI,
   getRecommendedJobsAPI,
   getProfileDetailsAPI,
 } = require("./api");
 
 const {
-  askQuestion,
   writeToFile,
   writeFileData,
-  chunkArray,
   filterJobs,
   getDataFromFile,
   getFileData,
-  rl,
-  selectProfile,
-  selectedProfile,
-  matchingMethods,
-  matchingStrategy,
+  getAnswerFromUser,
+  compressProfile,
 } = require("./utils");
 const {
-  checkSuitability,
-  answerQuestion,
   answerQuestion2,
   getGeminiUserConfiguration,
   initializeGeminiModel,
@@ -43,7 +35,15 @@ const login = async (profile) => {
   }
   const response = await loginAPI(profile.creds);
   if (!response.ok) {
-    console.error(response);
+    console.log("There was an error while logging in");
+    const data = await response.json();
+    const errors = [
+      ...(data?.validationErrors || []),
+      ...(data?.fieldValidationErrors || []),
+    ];
+    errors.forEach((error) => {
+      console.log(`${error.field}: ${error.message} `);
+    });
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const cookies = {};
@@ -253,15 +253,20 @@ const getRecommendedJobs = async () => {
   return jobIds;
 };
 
-const handleQuestionnaire2 = async (data) => {
+const handleQuestionnaire = async (data) => {
   const applyData = {};
   const profile = localStorage.getItem("profile");
-  const questions = await getDataFromFile("questions", profile.id);
-
+  const questions = (await getDataFromFile("questions", profile.id)) ?? {};
+  const updatedProfile = compressProfile(profile);
   for (const job of data.jobs) {
     const answers = {};
     const questionsToBeAnswered = [];
     job.questionnaire.forEach((question) => {
+      // Some questions have empty options
+      const isEmptyOptions = Object.values(question.answerOption).every(
+        (value) => value === ""
+      );
+      if (isEmptyOptions) question.answerOption = {};
       const uniqueQid = `${question.questionName}_${JSON.stringify(
         question.answerOption
       )}`;
@@ -269,9 +274,6 @@ const handleQuestionnaire2 = async (data) => {
       if (que) {
         answers[question.questionId] = que.answer;
         que.options = question.answerOption;
-        console.log(
-          `Already answered ${question.questionName}: \n---> ${que.answer}`
-        );
       } else {
         questionsToBeAnswered.push({
           questionId: question.questionId,
@@ -283,101 +285,45 @@ const handleQuestionnaire2 = async (data) => {
     if (questionsToBeAnswered.length > 0) {
       const answeredQuestions = await answerQuestion2(
         questionsToBeAnswered,
-        profile
+        updatedProfile
       );
       answeredQuestions?.forEach((question) => {
-        answers[question.questionId] = question.answer;
+        if (question.answer.length !== 0 && Number(question.confidence) > 40) {
+          answers[question.questionId] = question.answer;
+        }
+      });
+    }
+    //get all the questions job.questionnaire which are not present in answers using question id
+    const remainingQuestions = job.questionnaire.filter(
+      (question) => !answers[question.questionId]
+    );
+    if (remainingQuestions.length > 0) {
+      remainingQuestions.forEach((question) => {
+        const answer = getAnswerFromUser(question);
+        answers[question.questionId] = answer;
       });
     }
     applyData[job.jobId] = { answers: answers };
-  }
-  return applyData;
-};
 
-const handleQuestionnaire = async (data) => {
-  const applyData = {};
-  const profile = localStorage.getItem("profile");
-  const questions = await getDataFromFile("questions", profile.id);
-  // const questionsMap = {};
-  // for (const qId in questions) {
-  //   const question = questions[qId];
-  //   questionsMap[question.question] = question;
-  // }
-  for (const job of data.jobs) {
-    if (job.status == "200" || job.status == "409001") {
-      throw new Error(job.status);
-    } else {
-      console.log(
-        `Applying for ${job.companyName}\nJob Title : ${job.jobTitle}\n`
-      );
-      if (job.questionnaire.length > 0) {
-        const answers = {};
-        for (const question of job.questionnaire) {
-          const uniqueQid = `${question.questionName}_${JSON.stringify(
-            question.answerOption
-          )}`;
-          // const que = Object.values(questions).find((item) => (item.question == question.questionName && JSON.stringify(item.options) == JSON.stringify(question.answerOption)));
-          // const que = q ?? questions.find((item) => item.question == question.questionName);
-          // const que = q ?? questionsMap[question.questionName];
-          const que = questions[uniqueQid];
-          if (que) {
-            answers[question.questionId] = que.answer;
-            que.options = question.answerOption;
-            console.log(
-              `Already answered ${question.questionName}: \n---> ${que.answer}`
-            );
-          } else {
-            // Take the answer from user through console
-            // console.log("Please answer the following question");
-            // console.log(question.questionName);
-            // const ans = await prompts.input({message:
-            //   `${JSON.stringify(question.answerOption)}\n`
-            // });
-            console.log(
-              "Taking help from Recruiter Assistant to answer the question"
-            );
-            const ans = await answerQuestion(
-              question.questionName,
-              question.answerOption,
-              profile
-            );
-            console.log({
-              question: question.questionName,
-              options: question.answerOption,
-              answer: ans.answer,
-            });
-
-            const res = await prompts.input({
-              message: `Please confirm the answer ?`,
-            });
-            if (res !== "") {
-              if (
-                question.questionType === "List Menu" ||
-                question.questionType === "Check Box"
-              ) {
-                ans.answer = [res];
-              } else {
-                ans.answer = res;
-              }
-            }
-            answers[question.questionId] = ans.answer;
-            // }
-            questions[uniqueQid] = {
-              question: question.questionName,
-              answer: answers[question.questionId],
-              options: question.answerOption,
-              type: question.questionType,
-            };
-            writeToFile(questions, "questions", profile.id);
-            // ;
-          }
-        }
-        applyData[job.jobId] = { answers: answers };
+    //Save the questions in file
+    if(questions === undefined) questions = {};
+    job.questionnaire.forEach((question) => {
+      const uniqueId = `${question.questionName}_${JSON.stringify(
+        question.answerOption
+      )}`;
+      if (!questions[uniqueId]) {
+        questions[uniqueId] = {
+          questionId: question.questionId,
+          questionName: question.questionName,
+          answerOption: question.answerOption,
+          questionType: question.questionType,
+          answer: answers[question.questionId],
+        };
       }
-    }
+    });
+    writeToFile(questions, "questions", profile.id);
   }
-  // console.log("applyData : " + JSON.stringify(applyData));
-  writeToFile(questions, "questions", profile.id);
+
   return applyData;
 };
 
@@ -390,6 +336,7 @@ const clearJobs = async () => {
 // main function90
 
 const findNewJobs = async (noOfPages, repetitions) => {
+  const preferences = await localStorage.getItem("preferences");
   const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
@@ -401,7 +348,7 @@ const findNewJobs = async (noOfPages, repetitions) => {
   for (let i = 0; i < noOfPages; i++) {
     const jobs = searchJobs(
       i + 1,
-      profile.desiredRole?.map(encodeURIComponent).join("%2C%20"),
+      preferences.desiredRole?.map(encodeURIComponent).join("%2C%20"),
       repetitions
     );
     promises.push(jobs);
@@ -439,9 +386,7 @@ const getExistingJobs = async () => {
 const getUserProfile = async () => {
   const response = await getProfileDetailsAPI();
   const userData = await response.json();
-  const profile = await constructUser(userData);
-  localStorage.setItem("profile", profile);
-  return profile;
+  return constructUser(userData);
 };
 
 const getPreferences = async (user) => {
@@ -527,7 +472,7 @@ const getPreferences = async (user) => {
     ? preferences.keywords.join(", ")
     : "None";
 
-  if (doConfiguration || (desiredRoles === "None" || keywords === "None")) {
+  if (doConfiguration || desiredRoles === "None" || keywords === "None") {
     let res = await prompts.input({
       message: `Here are current desired roles:
     ${desiredRoles}
@@ -555,7 +500,7 @@ const getPreferences = async (user) => {
       });
     }
   }
-  if(doConfiguration || preferences.noOfPages || preferences.dailyQuota) {
+  if (doConfiguration || !preferences.noOfPages || !preferences.dailyQuota) {
     let res = await prompts.number({
       message: "Enter the number of pages to search for jobs",
       default: 5,
@@ -571,9 +516,6 @@ const getPreferences = async (user) => {
     });
     preferences.dailyQuota = res;
   }
-
-  writeToFile(preferences, "preferences", user.id);
-  localStorage.setItem("preferences", preferences);
   return preferences;
 };
 
@@ -629,7 +571,8 @@ const constructUser = async (apiData) => {
       expectedCtc: Number(apiData.profile[0].absoluteExpectedCtc),
       disability:
         apiData.profile[0].disability.isDisabled == "N" ? "No" : "Yes",
-      noticePeriod: apiData.profile[0].noticePeriod.value,
+      noticePeriod: apiData.profile[0]?.noticePeriod?.value,
+      noticeEndDate: apiData.noticePeriod[0]?.noticeEndDate,
       currentCtc: Number(apiData.profile[0].absoluteCtc),
       totalExperience: {
         year: apiData.profile[0].experience.year,
@@ -640,9 +583,7 @@ const constructUser = async (apiData) => {
     },
   };
   const preferences = await getPreferences(user);
-  user.desiredRole = preferences.desiredRole;
-  user.keywords = preferences.keywords;
-  return user;
+  return { user, preferences };
 };
 
 const manageProfiles = async (profile, loginInfo) => {
@@ -662,7 +603,7 @@ const manageProfiles = async (profile, loginInfo) => {
   } else {
     profiles.push(data);
   }
-  writeFileData(profiles, "profiles");
+  return profiles;
 };
 
 module.exports = {
@@ -673,7 +614,6 @@ module.exports = {
   searchSimillarJobs,
   getRecommendedJobs,
   handleQuestionnaire,
-  handleQuestionnaire2,
   clearJobs,
   findNewJobs,
   getExistingJobs,

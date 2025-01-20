@@ -1,5 +1,4 @@
 const { getFormattedDate, localStorage } = require("./helper");
-const axiosInstance = require("./apiInstance");
 
 const commonHeaders = {
   accept: "application/json",

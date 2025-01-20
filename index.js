@@ -1,22 +1,12 @@
 #!/usr/bin/env node
 
 const {
-  askQuestion,
   writeToFile,
-  chunkArray,
-  filterJobs,
-  getDataFromFile,
   rl,
   selectProfile,
-  selectedProfile,
-  matchingMethods,
   matchingStrategy,
+  writeFileData,
 } = require("./utils");
-const {
-  checkSuitability,
-  answerQuestion,
-  answerQuestion2,
-} = require("./gemini");
 
 const {
   getExistingJobs,
@@ -25,18 +15,16 @@ const {
   login,
   getUserProfile,
   manageProfiles,
-  handleQuestionnaire2,
+  handleQuestionnaire,
 } = require("./jobUtils");
 const prompts = require("@inquirer/prompts");
 const { localStorage } = require("./helper");
 
-const noOfPages = 5;
 const repetitions = 1;
-const quotaLimit = 40;
 
 const doTheStuff = async (profile) => {
   const preferences = localStorage.getItem("preferences");
-  const {noOfPages, dailyQuota} = preferences;
+  const { noOfPages, dailyQuota } = preferences;
   let jobIds = [];
   try {
     console.log("Mission Job search Started...");
@@ -56,6 +44,7 @@ const doTheStuff = async (profile) => {
         const isAlreadyApplied = job.isApplied;
         const isSuitable =
           job.isSuitable || (await matchingStrategy(job, profile));
+        job.isSuitable = isSuitable;
 
         if (!isSuitable || isAlreadyApplied) {
           console.log(
@@ -72,7 +61,6 @@ const doTheStuff = async (profile) => {
             job.companyName
           } | ${isSuitable ? "Suitable" : "Not Suitable"}`
         );
-        job.isSuitable = isSuitable;
         const jobsSlot = [job];
         const result = await applyForJobs(jobsSlot);
 
@@ -94,7 +82,7 @@ const doTheStuff = async (profile) => {
           jobIds[i].isApplied = true;
         }
         if (result.jobs[0].status !== 200 && preferences.enableGenAi) {
-          const questionnaire = await handleQuestionnaire2(result);
+          const questionnaire = await handleQuestionnaire(result);
           const finalResult = await applyForJobs(jobsSlot, questionnaire);
           if (finalResult.jobs[0].status == 200) {
             console.log(
@@ -130,7 +118,7 @@ const doTheStuff = async (profile) => {
 const startProgram = async () => {
   try {
     const args = process.argv.slice(2);
-    const command = args[0];
+    const command = args[args.length - 1];
     let loginInfo;
     if (command == "login") {
       loginInfo = await login();
@@ -143,9 +131,13 @@ const startProgram = async () => {
       authorization = loginInfo.authorization;
     }
 
-    const profile = await getUserProfile();
-    manageProfiles(profile, loginInfo);
-    doTheStuff(profile);
+    const { user, preferences } = await getUserProfile();
+    const updatedProfiles = await manageProfiles(user, loginInfo);
+    localStorage.setItem("profile", user);
+    localStorage.setItem("preferences", preferences);
+    writeToFile(preferences, "preferences", user.id);
+    writeFileData(updatedProfiles, "profiles");
+    doTheStuff(user);
   } catch (e) {
     process.exit(1);
   }

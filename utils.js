@@ -1,8 +1,6 @@
 const fs = require("fs");
 const readline = require("readline");
 const { checkSuitability } = require("./gemini");
-const { loginAPI } = require("./api");
-const { get } = require("http");
 const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
 
@@ -209,6 +207,44 @@ const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
   return matchingResult;
 };
 
+const getAnswerFromUser = async (question) => {
+  let res;
+  switch (question.questionType) {
+    case "List Menu":
+      res = await prompts.select({
+        message: question.questionName,
+        choices: Object.values(question.answerOption).map((option) => ({
+          name: option,
+          value: option,
+        })),
+      });
+      question.answer = [res];
+      break;
+    case "Check Box":
+      res = await prompts.checkbox({
+        message: question.questionName,
+        choices: Object.values(question.answerOption).map((option) => ({
+          name: option,
+          value: option,
+        })),
+      });
+      question.answer = res;
+      break;
+    default:
+      res = await prompts.input({
+        message: question.questionName,
+      });
+      question.answer = res;
+  }
+  return question.answer;
+};
+
+const compressProfile = (profile) => {
+  delete profile.profile.keySkills;
+  profile.employmentHistory.map((item) => delete item.jobDescription);
+  return profile;
+}
+
 module.exports = {
   chunkArray,
   askQuestion,
@@ -222,4 +258,6 @@ module.exports = {
   selectedProfile,
   matchingMethods,
   matchingStrategy,
+  getAnswerFromUser,
+  compressProfile,
 };

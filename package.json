@@ -6,7 +6,7 @@
   "author": "Pranesh Nangare",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data --trace-warnings",
+    "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data",
     "dev": "node index.js"
   },
   "keywords": [
