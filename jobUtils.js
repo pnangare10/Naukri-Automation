@@ -429,6 +429,7 @@ const getPreferences = async (user) => {
     enableGenAi = await prompts.confirm({
       message: "Would you like to enable Gen Ai based question answering ?",
     });
+    preferences.enableGenAi = false;
     if (enableGenAi || matchStrategy === "ai") {
       let res = await prompts.select({
         message: "Please select gen ai model to use",
@@ -444,15 +445,12 @@ const getPreferences = async (user) => {
         res = "gemini";
       }
       if (res === "gemini") {
-        const config = await getGeminiUserConfiguration();
-        initializeGeminiModel(config);
+        const {config, enableGenAi} = await getGeminiUserConfiguration();
         preferences.genAiConfig = config;
+        preferences.enableGenAi = enableGenAi;
       }
-      preferences.enableGenAi = true;
       preferences.genAiModel = res;
       preferences.matchStrategy = matchStrategy;
-    } else {
-      preferences.enableGenAi = false;
     }
   }
 

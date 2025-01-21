@@ -137,6 +137,7 @@ const getGeminiUserConfiguration = async (preferences) => {
     textModel,
     keyFile,
   };
+  
   try {
     console.log("Pinging gemini model ...");
     await initializeGeminiModel(preferences.genAiConfig);
