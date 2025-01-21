@@ -121,19 +121,19 @@ const getEmailsIds = async (jobs) => {
     const emailId = jobDetails.description.match(
       /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
     );
-    if (emailId.length > 0) {
-      const index = emailIds.filter((email) => email.email === emailId[0]);
+    if (emailId && emailId.length > 0) {
+      const index = emailIds.filter((emailObj) => emailObj.email[0] === emailId[0]);
       if (index.length === 0)
         emailIds.push({
           company: jobDetails.companyName,
-          email: emailId[0],
+          email: emailId,
           title: jobDetails.title,
           jobId: jobDetails.jobId,
         });
     }
   });
   //remove duplicate objects
-  emailIds.writeToFile(emailIds, "hrEmails");
+  writeToFile(emailIds, "hrEmails");
   return emailIds;
 };
 
@@ -248,6 +248,7 @@ const getAnswerFromUser = async (question) => {
           name: option,
           value: option,
         })),
+        default: question.answer,
       });
       question.answer = [res];
       break;
@@ -258,12 +259,14 @@ const getAnswerFromUser = async (question) => {
           name: option,
           value: option,
         })),
+        default: question.answer,
       });
       question.answer = res;
       break;
     default:
       res = await prompts.input({
         message: question.questionName,
+        default: question.answer,
       });
       question.answer = res;
   }

@@ -18,10 +18,7 @@ const {
   compressProfile,
   getEmailsIds,
 } = require("./utils");
-const {
-  getGeminiUserConfiguration,
-  answerQuestion,
-} = require("./gemini");
+const { getGeminiUserConfiguration, answerQuestion } = require("./gemini");
 const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
 
@@ -47,8 +44,10 @@ const login = async (profile) => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const cookies = {};
-  response.headers.getSetCookie().forEach((cookieStr) => {
-    const [name, value] = cookieStr.split(";")[0].split("=");
+  const setCookie = response.headers.get("set-cookie");
+  const cookie = setCookie.split(";");
+  cookie?.forEach((cookieStr) => {
+    const [name, value] = cookieStr.split("=");
     cookies[name] = value;
   });
 
@@ -139,6 +138,11 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
             if (data?.metaSearch?.isExpiredJob === "1") {
               process.stdout.write("Expired Job \r");
             }
+          } else {
+            console.log(
+              `Error fetching job details for Job ID: ${jobId}
+              Status: ${response.status}`
+            );
           }
           return null; // Return null if no valid job data is found.
         } catch (error) {
@@ -287,8 +291,19 @@ const handleQuestionnaire = async (data) => {
         updatedProfile
       );
       answeredQuestions?.forEach((question) => {
-        if (question.answer.length !== 0 && Number(question.confidence) > 40) {
+        if (
+          (typeof question.answer === "string" ||
+            typeof question.answer === "number" ||
+            question.answer instanceof Array) &&
+          question.answer.length !== 0 &&
+          Number(question.confidence) > 40
+        ) {
           answers[question.questionId] = question.answer;
+        } else {
+          const index = job.questionnaire.findIndex(
+            (que) => que.questionId == question.questionId
+          );
+          job.questionnaire[index].answer = question.answer;
         }
       });
     }
@@ -297,15 +312,15 @@ const handleQuestionnaire = async (data) => {
       (question) => !answers[question.questionId]
     );
     if (remainingQuestions.length > 0) {
-      remainingQuestions.forEach((question) => {
-        const answer = getAnswerFromUser(question);
+      for (const question of remainingQuestions) {
+        const answer = await getAnswerFromUser(question);
         answers[question.questionId] = answer;
-      });
+      }
     }
     applyData[job.jobId] = { answers: answers };
 
     //Save the questions in file
-    if(questions === undefined) questions = {};
+    if (questions === undefined) questions = {};
     job.questionnaire.forEach((question) => {
       const uniqueId = `${question.questionName}_${JSON.stringify(
         question.answerOption
@@ -361,7 +376,6 @@ const findNewJobs = async (noOfPages, repetitions) => {
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
-  const emailsIds = getEmailsIds(jobInfo);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   return filteredJobs;
@@ -370,6 +384,12 @@ const findNewJobs = async (noOfPages, repetitions) => {
 const getExistingJobs = async () => {
   const jobsFromFile = await getDataFromFile("filteredJobIds");
   console.log(`Jobs from file : ${jobsFromFile?.length}`);
+  if (
+    !jobsFromFile ||
+    jobsFromFile.length === 0 ||
+    Object.keys(jobsFromFile).length === 0
+  )
+    return [];
   const filteredJobs = jobsFromFile?.filter(
     (job) => !job.isSuitable || job.isApplied
   );
@@ -445,7 +465,7 @@ const getPreferences = async (user) => {
         res = "gemini";
       }
       if (res === "gemini") {
-        const {config, enableGenAi} = await getGeminiUserConfiguration();
+        const { config, enableGenAi } = await getGeminiUserConfiguration();
         preferences.genAiConfig = config;
         preferences.enableGenAi = enableGenAi;
       }

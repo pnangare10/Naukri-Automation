@@ -8,6 +8,7 @@ A CLI tool to automate job search and applications.
 - Profile management for personalized results.
 - Automatic job filtering and application.
 - Daily quota compliance.
+- Extract HR Emails from Job descriptions
 
 ## Installation
 

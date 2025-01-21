@@ -6,6 +6,7 @@ const {
   selectProfile,
   matchingStrategy,
   writeFileData,
+  getEmailsIds,
 } = require("./utils");
 
 const {
@@ -38,6 +39,7 @@ const doTheStuff = async (profile) => {
     if (ans || jobIds.length == 0) {
       jobIds = await findNewJobs(noOfPages, repetitions);
     }
+    const emailsIds = getEmailsIds(jobIds);
     for (let i = 0; i < jobIds.length; i++) {
       try {
         const job = jobIds[i];
@@ -138,7 +140,7 @@ const startProgram = async () => {
     localStorage.setItem("preferences", preferences);
     writeToFile(preferences, "preferences", user.id);
     writeFileData(updatedProfiles, "profiles");
-    doTheStuff(user);
+    await doTheStuff(user);
   } catch (e) {
     process.exit(1);
   }
