@@ -16,10 +16,10 @@ const {
   getFileData,
   getAnswerFromUser,
   compressProfile,
+  getEmailsIds,
 } = require("./utils");
 const {
   getGeminiUserConfiguration,
-  initializeGeminiModel,
   answerQuestion,
 } = require("./gemini");
 const { localStorage } = require("./helper");
@@ -361,6 +361,7 @@ const findNewJobs = async (noOfPages, repetitions) => {
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
+  const emailsIds = getEmailsIds(jobInfo);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   return filteredJobs;
@@ -368,12 +369,11 @@ const findNewJobs = async (noOfPages, repetitions) => {
 
 const getExistingJobs = async () => {
   const jobsFromFile = await getDataFromFile("filteredJobIds");
-  console.log("Jobs from file : ");
-  console.log(jobsFromFile.length);
+  console.log(`Jobs from file : ${jobsFromFile?.length}`);
   const filteredJobs = jobsFromFile?.filter(
     (job) => !job.isSuitable || job.isApplied
   );
-  if (filteredJobs.length > 0) {
+  if (filteredJobs?.length > 0) {
     console.log("Found jobs from file " + filteredJobs.length);
     return filteredJobs;
   } else {

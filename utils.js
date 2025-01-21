@@ -3,6 +3,7 @@ const readline = require("readline");
 const { checkSuitability } = require("./gemini");
 const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
+const { get } = require("http");
 
 let selectedProfile = null;
 
@@ -57,12 +58,18 @@ const getDataFromFile = async (fileName, profile) => {
 };
 
 const getFileData = async (fileName) => {
-  //check if file exists
-  if (!fs.existsSync(`./data/${fileName}.json`)) {
-    return;
+  try {
+    //check if file exists
+    if (!fs.existsSync(`./data/${fileName}.json`)) {
+      console.log(`File ${fileName} does not exist`);
+      return;
+    }
+    const data = fs.readFileSync(`./data/${fileName}.json`);
+    return JSON.parse(data);
+  } catch (err) {
+    console.error(err);
+    return null;
   }
-  const data = fs.readFileSync(`./data/${fileName}.json`);
-  return JSON.parse(data);
 };
 
 const filterJobs = (jobInfo) => {
@@ -103,6 +110,31 @@ const filterJobs = (jobInfo) => {
     `Total number of Jobs : ${jobInfo.length}\nFiltered Jobs : ${filteredJobs.length}`
   );
   return filteredJobs;
+};
+
+const getEmailsIds = async (jobs) => {
+  let emailIds = await getDataFromFile("hrEmails");
+  console.log(emailIds);
+  if (!emailIds) emailIds = [];
+  console.log(emailIds);
+  jobs?.forEach((jobDetails) => {
+    const emailId = jobDetails.description.match(
+      /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
+    );
+    if (emailId.length > 0) {
+      const index = emailIds.filter((email) => email.email === emailId[0]);
+      if (index.length === 0)
+        emailIds.push({
+          company: jobDetails.companyName,
+          email: emailId[0],
+          title: jobDetails.title,
+          jobId: jobDetails.jobId,
+        });
+    }
+  });
+  //remove duplicate objects
+  emailIds.writeToFile(emailIds, "hrEmails");
+  return emailIds;
 };
 
 // select a profile
@@ -242,7 +274,7 @@ const compressProfile = (profile) => {
   delete profile.profile.keySkills;
   profile.employmentHistory.map((item) => delete item.jobDescription);
   return profile;
-}
+};
 
 module.exports = {
   chunkArray,
@@ -250,6 +282,7 @@ module.exports = {
   writeToFile,
   writeFileData,
   filterJobs,
+  getEmailsIds,
   rl,
   getDataFromFile,
   getFileData,
