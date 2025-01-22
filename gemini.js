@@ -63,7 +63,7 @@ const getGeminiUserConfiguration = async (preferences) => {
         message: "Were you able to download the api key file?",
         default: true,
       });
-
+      
       console.log("7. Paste api key file in apikeys folder");
       if (!fs.existsSync(apikeysFolderPath)) {
         console.log("The 'apiKeys' folder does not exist. Creating it...");
@@ -76,7 +76,7 @@ const getGeminiUserConfiguration = async (preferences) => {
         message: "Have you added the key file(s) to the folder?",
         default: true,
       });
-
+      
       console.log(`8. Enable Vertex AI API from API's and Services Section.`);
       openUrl(
         `https://console.cloud.google.com/apis/library/aiplatform.googleapis.com`
@@ -87,7 +87,7 @@ const getGeminiUserConfiguration = async (preferences) => {
         message: "Were you able to enable the Vertext AI API?",
         default: true,
       });
-
+      
       console.log(`9. Enable Gemini API from API's and Services Section.`);
       openUrl(
         `https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`
@@ -98,22 +98,22 @@ const getGeminiUserConfiguration = async (preferences) => {
         message: "Were you able to enable the Gemini API?",
         default: true,
       });
-
+      
       // Refresh the list of files after confirmation
       files = fs
-        .readdirSync(apikeysFolderPath)
-        .filter((file) => file.endsWith(".json"));
+      .readdirSync(apikeysFolderPath)
+      .filter((file) => file.endsWith(".json"));
     }
-
+    
     const keyFilePrompt = await prompts.select({
       type: "select",
       name: "value",
       message: "Select your Google Cloud service account key file:",
       choices: files.map((file) => ({ name: file, value: file })),
     });
-
+    
     const keyFile = path.join(apikeysFolderPath, keyFilePrompt);
-
+    
     let result = keyFilePrompt.split("-");
     result = result.slice(0, result.length - 1).join("-");
     const project = await prompts.input({
@@ -123,14 +123,14 @@ const getGeminiUserConfiguration = async (preferences) => {
       default: genAiConfig.project || result,
       validate: (input) => (input ? true : "Project ID is required."),
     });
-
+    
     const location = await prompts.input({
       type: "text",
       name: "value",
       message: "Enter your location (e.g., us-central1):",
       default: genAiConfig.location || "us-central1",
     });
-
+    
     preferences.genAiConfig = {
       authType,
       project,
@@ -139,6 +139,9 @@ const getGeminiUserConfiguration = async (preferences) => {
       keyFile,
     };
   } else {
+    openUrl(
+      `https://aistudio.google.com/app/u/3/apikey`
+    );
     const apiKey = await prompts.input({
       type: "text",
       name: "value",
