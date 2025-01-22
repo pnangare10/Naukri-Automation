@@ -317,10 +317,32 @@ const handleQuestionnaire = async (data) => {
         answers[question.questionId] = answer;
       }
     }
-    applyData[job.jobId] = { answers: answers };
 
-    //Save the questions in file
-    if (questions === undefined) questions = {};
+    // Normalize answers based on question type
+    for (const question of job.questionnaire) {
+      const questionId = question.questionId;
+      const answer = answers[questionId];
+
+      if (question.questionType === "Text Box") {
+        answers[questionId] = Array.isArray(answer)
+          ? answer.join(" ")
+          : String(answer || "");
+      } else if (
+        ["Check Box", "Radio Button", "List Menu"].includes(
+          question.questionType
+        ) &&
+        !Array.isArray(answer)
+      ) {
+        answers[questionId] = [answer].filter(Boolean); // Wrap non-array answer and handle falsy values
+      }
+    }
+
+    // Add normalized answers to applyData
+    applyData[job.jobId] = { answers };
+
+    // Save the questions in the file
+    if (!questions) questions = {};
+
     job.questionnaire.forEach((question) => {
       const uniqueId = `${question.questionName}_${JSON.stringify(
         question.answerOption
@@ -335,6 +357,7 @@ const handleQuestionnaire = async (data) => {
         };
       }
     });
+
     writeToFile(questions, "questions", profile.id);
   }
 
@@ -465,7 +488,7 @@ const getPreferences = async (user) => {
         res = "gemini";
       }
       if (res === "gemini") {
-        const { config, enableGenAi } = await getGeminiUserConfiguration();
+        const { config, enableGenAi } = await getGeminiUserConfiguration(preferences);
         preferences.genAiConfig = config;
         preferences.enableGenAi = enableGenAi;
       }

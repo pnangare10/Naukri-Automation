@@ -122,7 +122,9 @@ const getEmailsIds = async (jobs) => {
       /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
     );
     if (emailId && emailId.length > 0) {
-      const index = emailIds.filter((emailObj) => emailObj.email[0] === emailId[0]);
+      const index = emailIds.filter(
+        (emailObj) => emailObj.email[0] === emailId[0]
+      );
       if (index.length === 0)
         emailIds.push({
           company: jobDetails.companyName,
@@ -242,6 +244,7 @@ const getAnswerFromUser = async (question) => {
   let res;
   switch (question.questionType) {
     case "List Menu":
+    case "Radio Button":
       res = await prompts.select({
         message: question.questionName,
         choices: Object.values(question.answerOption).map((option) => ({
