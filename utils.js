@@ -114,12 +114,13 @@ const filterJobs = (jobInfo) => {
 
 const getEmailsIds = async (jobs) => {
   let emailIds = await getDataFromFile("hrEmails");
-  console.log(emailIds);
   if (!emailIds) emailIds = [];
-  console.log(emailIds);
   jobs?.forEach((jobDetails) => {
     const emailId = jobDetails.description.match(
       /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
+    );
+    const contact = jobDetails.description.match(
+      /\b(?:\+?(\d{1,3})[-.\s]?)?(\(?\d{3}\)?|\d{3})[-.\s]?\d{3}[-.\s]?\d{4}\b/g
     );
     if (emailId && emailId.length > 0) {
       const index = emailIds.filter(
@@ -131,10 +132,10 @@ const getEmailsIds = async (jobs) => {
           email: emailId,
           title: jobDetails.title,
           jobId: jobDetails.jobId,
+          contact: contact,
         });
     }
   });
-  //remove duplicate objects
   writeToFile(emailIds, "hrEmails");
   return emailIds;
 };
@@ -205,7 +206,7 @@ const aiMatching = async (jobInfo, profile) => {
 
 const manualMatching = async (jobInfo) => {
   const res = await prompts.confirm({
-    message: `Is this job suitable ?`,
+    message: ` Is this job suitable: ${jobInfo.jobTitle} ?`,
     default: true,
   });
   return res;
@@ -225,10 +226,10 @@ const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
     matchStrategy = preferences.matchStrategy;
   switch (matchStrategy) {
     case "ai":
-      matchingResult = await matchingMethods.aiMatching(jobInfo, profile);
+      matchingResult = await matchingMethods.ai(jobInfo, profile);
       break;
     case "manual":
-      matchingResult = await matchingMethods.manualMatching(jobInfo);
+      matchingResult = await matchingMethods.manual(jobInfo);
       break;
     default:
       matchingResult = await matchingMethods.keywords(

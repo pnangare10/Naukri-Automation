@@ -1,6 +1,6 @@
 {
   "name": "naukri-automation-tool",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "description": "Naukri automation tool to fetch, filter, and apply for jobs automatically using gen ai.",
   "main": "index.js",
   "author": "Pranesh Nangare",
@@ -26,6 +26,7 @@
     "@google-cloud/vertexai": "^1.1.0",
     "@google/generative-ai": "^0.21.0",
     "@inquirer/prompts": "^7.2.3",
+    "natural": "^8.0.1",
     "naukri-automation-tool": "file:"
   }
 }

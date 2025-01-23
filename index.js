@@ -83,8 +83,8 @@ const doTheStuff = async (profile) => {
           }
           jobIds[i].isApplied = true;
         }
-        if (result.jobs[0].status !== 200 && preferences.enableGenAi) {
-          const questionnaire = await handleQuestionnaire(result);
+        if (result.jobs[0].status !== 200) {
+          const questionnaire = await handleQuestionnaire(result, preferences.enableGenAi);
           const finalResult = await applyForJobs(jobsSlot, questionnaire);
           if (finalResult.jobs[0].status == 200) {
             console.log(

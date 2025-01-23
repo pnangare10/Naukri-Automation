@@ -256,7 +256,7 @@ const getRecommendedJobs = async () => {
   return jobIds;
 };
 
-const handleQuestionnaire = async (data) => {
+const handleQuestionnaire = async (data, enableGenAi) => {
   const applyData = {};
   const profile = localStorage.getItem("profile");
   const questions = (await getDataFromFile("questions", profile.id)) ?? {};
@@ -285,7 +285,7 @@ const handleQuestionnaire = async (data) => {
         });
       }
     });
-    if (questionsToBeAnswered.length > 0) {
+    if (questionsToBeAnswered.length > 0 && enableGenAi) {
       const answeredQuestions = await answerQuestion(
         questionsToBeAnswered,
         updatedProfile
@@ -634,7 +634,7 @@ const manageProfiles = async (profile, loginInfo) => {
   };
   if (!profiles) {
     writeFileData([data], "profiles");
-    return;
+    return [data];
   }
   const profileIndex = profiles.findIndex((p) => p.id === profile.id);
 
