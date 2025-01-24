@@ -62,7 +62,7 @@ const getFileData = async (fileName) => {
     //check if file exists
     if (!fs.existsSync(`./data/${fileName}.json`)) {
       console.log(`File ${fileName} does not exist`);
-      return;
+      return null;
     }
     const data = fs.readFileSync(`./data/${fileName}.json`);
     return JSON.parse(data);

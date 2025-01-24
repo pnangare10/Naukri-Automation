@@ -16,182 +16,193 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
  * Captures user configuration through CLI prompts.
  */
 const getGeminiUserConfiguration = async (preferences) => {
-  if (!preferences) preferences = {};
+  try {
+    if (!preferences) preferences = {};
 
-  const genAiConfig = preferences.genAiConfig || {};
+    const genAiConfig = preferences.genAiConfig || {};
 
-  //Get the authenticaton type for gemini
-  const authType = await prompts.select({
-    type: "select",
-    name: "value",
-    message: "Select your authentication type:",
-    choices: [
-      { name: "API Key (Recommended)", value: "apiKey" },
-      { name: "Service Account", value: "serviceAccount" },
-    ],
-    default: genAiConfig.authType || "apiKey",
-  });
+    //Get the authenticaton type for gemini
+    const authType = await prompts.select({
+      type: "select",
+      name: "value",
+      message: "Select your authentication type:",
+      choices: [
+        { name: "API Key (Recommended)", value: "apiKey" },
+        { name: "Service Account", value: "serviceAccount" },
+      ],
+      default: genAiConfig.authType || "apiKey",
+    });
 
-  if (authType === "serviceAccount") {
-    // Ensure the apikeys folder exists
-    const apikeysFolderPath = path.join(__dirname, "apikeys");
+    console.log(authType);
+    if (authType === "serviceAccount") {
+      console.log(1);
+      console.log(authType);
+      // Ensure the apikeys folder exists
+      const apikeysFolderPath = path.join(__dirname, "apikeys");
+      //check if the file exists and create the file if it does not exist
+      if (!fs.existsSync(apikeysFolderPath)) {
+        fs.mkdirSync(apikeysFolderPath);
+      }
+      // Get the list of files in the folder
+      let files = fs
+        .readdirSync(apikeysFolderPath)
+        .filter((file) => file.endsWith(".json"));
 
-    // Get the list of files in the folder
-    let files = fs
-      .readdirSync(apikeysFolderPath)
-      .filter((file) => file.endsWith(".json"));
-
-    // If the folder is empty, prompt the user to add key files
-    while (files.length === 0) {
-      console.log("No key files found in the 'apikeys' folder.");
-      console.log(
-        "Please add your Google Cloud service account key files (.json) to the 'apikeys' folder."
-      );
-      console.log("Let me guide you step by step.");
-      console.log(`1. Log In: Go to Google Cloud Console and log in.
+      console.log(2);
+      // If the folder is empty, prompt the user to add key files
+      while (files.length === 0) {
+        console.log(3);
+        console.log("No key files found in the 'apikeys' folder.");
+        console.log(
+          "Please add your Google Cloud service account key files (.json) to the 'apikeys' folder."
+        );
+        console.log("Let me guide you step by step.");
+        console.log(`1. Log In: Go to Google Cloud Console and log in.
 2. Navigate to IAM & Admin: From the left-hand menu, go to IAM & Admin > Service Accounts.
 3. Select Service Account: Find and click on the service account for which you need the key.
 4. Manage Keys: Under the "Keys" section, click Add Key > Create new key.
 5. Choose Key Type: Select the JSON option and click Create.
 6. Copy the Key: Copy and paste the JSON key file into the "apikeys" folder.`);
-      openUrl(
-        `https://console.cloud.google.com/iam-admin/serviceaccounts/create`
-      );
-      let confirmPrompt = await prompts.confirm({
-        type: "confirm",
-        name: "value",
-        message: "Were you able to download the api key file?",
-        default: true,
-      });
+        openUrl(
+          `https://console.cloud.google.com/iam-admin/serviceaccounts/create`
+        );
+        let confirmPrompt = await prompts.confirm({
+          type: "confirm",
+          name: "value",
+          message: "Were you able to download the api key file?",
+          default: true,
+        });
 
-      console.log("7. Paste api key file in apikeys folder");
-      if (!fs.existsSync(apikeysFolderPath)) {
-        console.log("The 'apiKeys' folder does not exist. Creating it...");
-        fs.mkdirSync(apikeysFolderPath);
+        console.log("7. Paste api key file in apikeys folder");
+        if (!fs.existsSync(apikeysFolderPath)) {
+          console.log("The 'apiKeys' folder does not exist. Creating it...");
+          fs.mkdirSync(apikeysFolderPath);
+        }
+        await openFolder(apikeysFolderPath);
+        confirmPrompt = await prompts.confirm({
+          type: "confirm",
+          name: "value",
+          message: "Have you added the key file(s) to the folder?",
+          default: true,
+        });
+
+        console.log(`8. Enable Vertex AI API from API's and Services Section.`);
+        openUrl(
+          `https://console.cloud.google.com/apis/library/aiplatform.googleapis.com`
+        );
+        confirmPrompt = await prompts.confirm({
+          type: "confirm",
+          name: "value",
+          message: "Were you able to enable the Vertext AI API?",
+          default: true,
+        });
+
+        console.log(`9. Enable Gemini API from API's and Services Section.`);
+        openUrl(
+          `https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`
+        );
+        confirmPrompt = await prompts.confirm({
+          type: "confirm",
+          name: "value",
+          message: "Were you able to enable the Gemini API?",
+          default: true,
+        });
+
+        // Refresh the list of files after confirmation
+        files = fs
+          .readdirSync(apikeysFolderPath)
+          .filter((file) => file.endsWith(".json"));
       }
-      await openFolder(apikeysFolderPath);
-      confirmPrompt = await prompts.confirm({
-        type: "confirm",
+
+      const keyFilePrompt = await prompts.select({
+        type: "select",
         name: "value",
-        message: "Have you added the key file(s) to the folder?",
-        default: true,
+        message: "Select your Google Cloud service account key file:",
+        choices: files.map((file) => ({ name: file, value: file })),
       });
 
-      console.log(`8. Enable Vertex AI API from API's and Services Section.`);
-      openUrl(
-        `https://console.cloud.google.com/apis/library/aiplatform.googleapis.com`
-      );
-      confirmPrompt = await prompts.confirm({
-        type: "confirm",
+      const keyFile = path.join(apikeysFolderPath, keyFilePrompt);
+
+      let result = keyFilePrompt.split("-");
+      result = result.slice(0, result.length - 1).join("-");
+      const project = await prompts.input({
+        type: "text",
         name: "value",
-        message: "Were you able to enable the Vertext AI API?",
-        default: true,
+        message: "Enter your Google Cloud project ID:",
+        default: genAiConfig.project || result,
+        validate: (input) => (input ? true : "Project ID is required."),
       });
 
-      console.log(`9. Enable Gemini API from API's and Services Section.`);
-      openUrl(
-        `https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`
-      );
-      confirmPrompt = await prompts.confirm({
-        type: "confirm",
+      const location = await prompts.input({
+        type: "text",
         name: "value",
-        message: "Were you able to enable the Gemini API?",
-        default: true,
+        message: "Enter your location (e.g., us-central1):",
+        default: genAiConfig.location || "us-central1",
       });
 
-      // Refresh the list of files after confirmation
-      files = fs
-        .readdirSync(apikeysFolderPath)
-        .filter((file) => file.endsWith(".json"));
+      preferences.genAiConfig = {
+        authType,
+        project,
+        location,
+        keyFile,
+      };
+    } else {
+      openUrl(`https://aistudio.google.com/app/u/3/apikey`);
+      const apiKey = await prompts.input({
+        type: "text",
+        name: "value",
+        message: "Enter your Google API Key: ",
+        default: genAiConfig.apiKey ?? "",
+        validate: (input) =>
+          input && input.length > 0 ? true : "API Key is required.",
+      });
+      preferences.genAiConfig = {
+        authType,
+        apiKey,
+      };
     }
 
-    const keyFilePrompt = await prompts.select({
-      type: "select",
+    const textModel = await prompts.select({
       name: "value",
-      message: "Select your Google Cloud service account key file:",
-      choices: files.map((file) => ({ name: file, value: file })),
-    });
-
-    const keyFile = path.join(apikeysFolderPath, keyFilePrompt);
-
-    let result = keyFilePrompt.split("-");
-    result = result.slice(0, result.length - 1).join("-");
-    const project = await prompts.input({
-      type: "text",
-      name: "value",
-      message: "Enter your Google Cloud project ID:",
-      default: genAiConfig.project || result,
-      validate: (input) => (input ? true : "Project ID is required."),
-    });
-
-    const location = await prompts.input({
-      type: "text",
-      name: "value",
-      message: "Enter your location (e.g., us-central1):",
-      default: genAiConfig.location || "us-central1",
-    });
-
-    preferences.genAiConfig = {
-      authType,
-      project,
-      location,
-      textModel,
-      keyFile,
-    };
-  } else {
-    openUrl(`https://aistudio.google.com/app/u/3/apikey`);
-    const apiKey = await prompts.input({
-      type: "text",
-      name: "value",
-      message: "Enter your Google API Key: ",
-      default: genAiConfig.apiKey ?? "",
-      validate: (input) =>
-        input && input.length > 0 ? true : "API Key is required.",
-    });
-    preferences.genAiConfig = {
-      authType,
-      apiKey,
-    };
-  }
-
-  const textModel = await prompts.select({
-    name: "value",
-    message: "Enter the text model (e.g., gemini-1.5-flash-002):",
-    default: genAiConfig.textModel || "gemini-1.5-flash-002",
-    choices: [
-      { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
-      { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
-      { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
-      { name: "gemini-1.5-pro-001", value: "gemini-1.5-pro-001" },
-      { name: "gemini-1.0-pro-002", value: "gemini-1.0-pro-002" },
-      { name: "gemini-1.0-pro-001", value: "gemini-1.0-pro-001" },
-    ],
-  });
-
-  preferences.genAiConfig.textModel = textModel;
-
-  try {
-    console.log("Pinging gemini model ...");
-    await initializeGeminiModel(preferences.genAiConfig);
-    await pingModel();
-    preferences.enableGenAi = true;
-  } catch (e) {
-    let choice = await prompts.select({
-      message:
-        "Would you like to do configuration again or disable Gen AI application?",
+      message: "Enter the text model (e.g., gemini-1.5-flash-002):",
+      default: genAiConfig.textModel || "gemini-1.5-flash-002",
       choices: [
-        { name: "Do configuration", value: "configure" },
-        { name: "Disable Gen AI", value: "disable" },
+        { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
+        { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
+        { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
+        { name: "gemini-1.5-pro-001", value: "gemini-1.5-pro-001" },
+        { name: "gemini-1.0-pro-002", value: "gemini-1.0-pro-002" },
+        { name: "gemini-1.0-pro-001", value: "gemini-1.0-pro-001" },
       ],
     });
-    if (choice === "configure") await getGeminiUserConfiguration(preferences);
-    else preferences.enableGenAi = false;
-  }
 
-  return {
-    config: preferences.genAiConfig,
-    enableGenAi: preferences.enableGenAi,
-  };
+    preferences.genAiConfig.textModel = textModel;
+    try {
+      console.log("Pinging gemini model ...");
+      await initializeGeminiModel(preferences.genAiConfig);
+      await pingModel();
+      preferences.enableGenAi = true;
+    } catch (e) {
+      let choice = await prompts.select({
+        message:
+          "Would you like to do configuration again or disable Gen AI application?",
+        choices: [
+          { name: "Do configuration", value: "configure" },
+          { name: "Disable Gen AI", value: "disable" },
+        ],
+      });
+      if (choice === "configure") await getGeminiUserConfiguration(preferences);
+      else preferences.enableGenAi = false;
+    }
+
+    return {
+      config: preferences.genAiConfig,
+      enableGenAi: preferences.enableGenAi,
+    };
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
 };
 
 /**
@@ -293,7 +304,6 @@ const checkSuitability = async (job, profile) => {
       job.description
     );
     let answer = await getModelResponse(prompt);
-    console.log(answer)
     const jsonData = answer?.includes("```json")
       ? answer.split("```json")[1]?.split("```")[0]?.trim()
       : answer;
