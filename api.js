@@ -109,6 +109,19 @@ const getProfileDetailsAPI = async () =>
     }
   );
 
+const incrementCounterAPI = async () => {
+  fetch (
+    "https://apicounter-tzxo.onrender.com/api/increment",
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: null,
+      method: "POST",
+    }
+  )
+}
+
 module.exports = {
   applyJobsAPI,
   searchJobsAPI,
@@ -117,4 +130,5 @@ module.exports = {
   loginAPI,
   getRecommendedJobsAPI,
   getProfileDetailsAPI,
+  incrementCounterAPI
 };

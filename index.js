@@ -20,6 +20,7 @@ const {
 } = require("./jobUtils");
 const prompts = require("@inquirer/prompts");
 const { localStorage } = require("./helper");
+const { incrementCounterAPI } = require("./api");
 
 const repetitions = 1;
 
@@ -39,7 +40,6 @@ const doTheStuff = async (profile) => {
     if (ans || jobIds.length == 0) {
       jobIds = await findNewJobs(noOfPages, repetitions);
     }
-    const emailsIds = getEmailsIds(jobIds);
     for (let i = 0; i < jobIds.length; i++) {
       try {
         const job = jobIds[i];
@@ -77,6 +77,7 @@ const doTheStuff = async (profile) => {
           console.log(
             `Applied successfully | Quota: ${result.quotaDetails.dailyApplied}`
           );
+          incrementCounterAPI();
           if (result.quotaDetails.dailyApplied >= dailyQuota) {
             console.log("Daily quota reached");
             break;
@@ -90,6 +91,7 @@ const doTheStuff = async (profile) => {
             console.log(
               `Applied successfully | Quota: ${finalResult.quotaDetails.dailyApplied}`
             );
+            incrementCounterAPI();
             jobIds[i].isApplied = true;
           }
         }

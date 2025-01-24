@@ -1,9 +1,11 @@
 const fs = require("fs");
+const path = require("path");
 const readline = require("readline");
 const { checkSuitability } = require("./gemini");
 const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
 const { get } = require("http");
+const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
 let selectedProfile = null;
 
@@ -144,6 +146,7 @@ const getEmailsIds = async (jobs) => {
     }
   });
   writeToFile(emailIds, "hrEmails");
+  getCsvFile(emailIds);
   return emailIds;
 };
 
@@ -207,7 +210,7 @@ const aiMatching = async (jobInfo, profile) => {
     return res.isSuitable;
   } catch (e) {
     console.log("Error in AI matching, Switching to manual matching");
-    return (await manualMatching(jobInfo));
+    return await manualMatching(jobInfo);
   }
 };
 
@@ -290,6 +293,20 @@ const compressProfile = (profile) => {
   return profile;
 };
 
+const getCsvFile = async (data) => {
+  const downloadsFolder = path.join(require("os").homedir(), "Downloads");
+  const csvWriter = createCsvWriter({
+    path: path.join(downloadsFolder, "hrContactDetails.csv"), // Save file to Downloads folder
+    header: Object.keys(data[0]).map((key) => ({ id: key, title: key })),
+  });
+  csvWriter
+    .writeRecords(data)
+    .then(() =>
+      console.log("CSV file was written successfully to the Downloads folder!")
+    )
+    .catch((err) => console.error("Error writing CSV file:", err));
+};
+
 module.exports = {
   chunkArray,
   askQuestion,
@@ -306,4 +323,5 @@ module.exports = {
   matchingStrategy,
   getAnswerFromUser,
   compressProfile,
+  getCsvFile,
 };

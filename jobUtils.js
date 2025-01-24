@@ -399,6 +399,7 @@ const findNewJobs = async (noOfPages, repetitions) => {
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
+  const emailIds = getEmailsIds(jobInfo);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   return filteredJobs;
