@@ -207,7 +207,7 @@ const aiMatching = async (jobInfo, profile) => {
     return res.isSuitable;
   } catch (e) {
     console.log("Error in AI matching, Switching to manual matching");
-    manualMatching(jobInfo);
+    return (await manualMatching(jobInfo));
   }
 };
 
