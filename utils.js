@@ -42,11 +42,18 @@ const writeToFile = (data, fileName, profile) => {
 };
 
 const writeFileData = (data, fileName) => {
-  fs.writeFileSync(`./data/${fileName}.json`, JSON.stringify(data), (err) => {
-    if (err) {
-      console.error(err);
+  try {
+    if (!fs.existsSync(`./data`)) {
+      fs.mkdirSync(`./data`, { recursive: true });
     }
-  });
+    fs.writeFileSync(`./data/${fileName}.json`, JSON.stringify(data), (err) => {
+      if (err) {
+        console.error(err);
+      }
+    });
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const getDataFromFile = async (fileName, profile) => {
