@@ -111,13 +111,13 @@ const getProfileDetailsAPI = async () =>
 
 const incrementCounterAPI = async () => {
   fetch (
-    "https://apicounter-tzxo.onrender.com/api/increment",
+    "https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter",
     {
       headers: {
         "Content-Type": "application/json",
       },
       body: null,
-      method: "POST",
+      method: "GET",
     }
   )
 }
