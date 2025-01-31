@@ -215,9 +215,12 @@ const aiMatching = async (jobInfo, profile) => {
 };
 
 const manualMatching = async (jobInfo) => {
-  const res = await prompts.confirm({
+  const res = await prompts.select({
     message: ` Is this job suitable: ${jobInfo.jobTitle} ?`,
-    default: true,
+    choices: [
+      { name: "Yes", value: true },
+      { name: "No", value: false },
+    ],
   });
   return res;
 };

@@ -436,9 +436,20 @@ const getPreferences = async (user) => {
   let preferences = await getDataFromFile("preferences", user.id);
   let doConfiguration = preferences ? false : true;
   if (preferences)
-    doConfiguration = await prompts.confirm({
+    doConfiguration = await prompts.select({
       message: "Do you want to configure your preferences ?",
-      default: false,
+      choices: [
+        {
+          name: "No",
+          value: false,
+          description: "Use default preferences",
+        },
+        {
+          name: "Yes",
+          value: true,
+          description: "Configure your preferences",
+        },
+      ],
     });
   if (!preferences) {
     preferences = {};
@@ -449,6 +460,12 @@ const getPreferences = async (user) => {
       message: "Select a strategy to match the jobs",
       choices: [
         {
+          name: "Keywords Matching",
+          value: "keywords",
+          description:
+            "Match the jobs with keywords provided by you and title of the job",
+        },
+        {
           name: "AI Matching",
           value: "ai",
           description: "Use Gen AI model to match the jobs",
@@ -458,20 +475,26 @@ const getPreferences = async (user) => {
           value: "manual",
           description: "Manually match the jobs with your confirmation",
         },
-        {
-          name: "Keywords Matching",
-          value: "keywords",
-          description:
-            "Match the jobs with keywords provided by you and title of the job",
-        },
       ],
     });
     preferences.matchStrategy = matchStrategy;
   }
   let enableGenAi = doConfiguration ? null : preferences.enableGenAi;
   if (enableGenAi === null || enableGenAi === undefined) {
-    enableGenAi = await prompts.confirm({
+    let enableGenAi = await prompts.select({
       message: "Would you like to enable Gen Ai based question answering ?",
+      choices: [
+        {
+          name: "Yes",
+          value: true,
+          description: "Use gen ai model to generate answers for questions asked in job application"
+        },
+        {
+          name: "No",
+          value: false,
+          description: "Skip gen ai setup."
+        }
+      ]
     });
     preferences.enableGenAi = false;
     if (enableGenAi || matchStrategy === "ai") {
@@ -495,6 +518,17 @@ const getPreferences = async (user) => {
       }
       preferences.genAiModel = res;
       preferences.matchStrategy = matchStrategy;
+    } else {
+      const enableManualAnswering = await prompts.select({
+        message: "Would you like to manually answer the questions?",
+        choices: [
+          { name: "No", value: false, description: "Jobs which require question answering will be skipped." },
+          { name: "Yes", value: true, description: "You will have to enter the answers manually. (Not recommended, defeats the purpose of automation :) )" },
+        ],
+        description: "Selecting no will result skipping the jobs which require question answering."
+      });
+      preferences.enableManualAnswering = enableManualAnswering;
+      
     }
   }
 

@@ -30,9 +30,12 @@ const doTheStuff = async (profile) => {
   let jobIds = [];
   try {
     console.log("Mission Job search Started...");
-    const ans = await prompts.confirm({
+    const ans = await prompts.select({
       message: `Would you like to search for new jobs?`,
-      default: true,
+      choices: [
+        { name: "Yes", value: true },
+        { name: "No", value: false },
+      ],
     });
     if (!ans) {
       jobIds = await getExistingJobs();
@@ -84,7 +87,7 @@ const doTheStuff = async (profile) => {
           }
           jobIds[i].isApplied = true;
         }
-        if (result.jobs[0].status !== 200) {
+        if (result.jobs[0].status !== 200 && preferences.enableManualAnswering) {
           const questionnaire = await handleQuestionnaire(result, preferences.enableGenAi);
           const finalResult = await applyForJobs(jobsSlot, questionnaire);
           if (finalResult.jobs[0].status == 200) {
