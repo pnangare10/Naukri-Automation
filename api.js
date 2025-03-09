@@ -10,6 +10,7 @@ const commonHeaders = {
   gid: "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
   pragma: "no-cache",
   priority: "u=1, i",
+  "nkparam": "oFYlsMP9SN/18UTJyWR0J4Far8aGlf/RgiTehgjzAfodyCTha++NVMb+jAOJjH4rULRVnn65HS1K0dD3clyVyQ==",
   "sec-ch-ua":
     '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
   "sec-ch-ua-mobile": "?0",
@@ -32,7 +33,7 @@ const getHeaders = (isAuthenticated, isCookieRequired) => {
     }),
     ...(isCookieRequired && {
       cookie:
-        "ak_bmsc=846DD46392B0310751DEA749E2379E51~000000000000000000000000000000~YAAQj/7UF/09qNGOAQAAuDbtIhfElrhYBy/92mVF3dUGENtEizaBaKOS8xbW7bTEjA5V11GIGWwTBcuGlmgAP3lhsq1I5klHC0VBvLOB/gKpZE2Wy+2dgXf96ju+SeUfw1FcAyfJjojwUcUHwS2BrTClnyP5NeLKVWc/gWU7tCDhj/z/GytxGmKy+uebM/RRpJsCHrUvovui1amSVFcRxp5PQTvxxFc3gu8lGRR64hKeiGXhZGnQ5vtoOig3zrsqGSeIrp0vLUaTYOsluvW2ALXhIkFC/gcfKkgbm72+QlA3tb4Indwx4KyNVK8wGdFD8Lnx8jJb4iX28HDGOADVeOg3BgQ/qfFbqVrjxQiXLH4R6KpatE4H7MNBsqw76amXuc5yCg1oIJzMb4H/L+QG8/a3sItgqb/JreU022hoLrPSMmR6cBZubh01BcqPH4Q0n72KimI0Pb2+WJsEry/liwuRnp2unTtGUD5Cjn+2FDzXiNKvn6W8tJ11EgvH; bm_sv=38CC44BC5CE5C6A49FCEB4BAEA7980ED~YAAQj/7UF8jZqdGOAQAAWRP8IheL7KnJCKaQXkBDplbMZVV6KOLs6+Ul++nFSfpBSldOutc9QMtYZOHORS5qv/2gaxKX2FSooAap3vINpmIfUVL4IoTx6FR1Swj7OadpaJXwa5Duxd8R+S4yuN83YheKsKoOzl798g18YJGEkVhfaPM+8PNnQoUBtSVVOQr9/CZdIGQ6WpZpogkuOCCA3uWb7raej5KQAAT+MQn7ypo24LbkxGKBdmXVb0o/5pWPCw==~1;",
+        '_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; _gcl_au=1.1.1303359034.1734549824; test=naukri.com; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; _ga=GA1.1.1388380775.1734549825; tStp=1737416650760; g_state={"i_p":1737657921031,"i_l":1}; ninjas_new_marketing_token=55944671e42bfe1914d9ff0ff85958bc; ph_phc_s4aJa5RpiiZlHbbxy4Y1Btjhosozg9ECrSuJNVrvZuP_posthog=%7B%22distinct_id%22%3A636236%7D; _clck=1xl6nx5%7C2%7Cftq%7C0%7C1882; _ga_7TYVEWTVRG=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_JCSR1LRE3X=GS1.1.1740493309.1.1.1740493404.0.0.0; nauk_rt=06ad020b47564912a1dcf732b3d8d6db; nauk_sid=06ad020b47564912a1dcf732b3d8d6db; nauk_otl=06ad020b47564912a1dcf732b3d8d6db; nauk_ps=default; _ga_T749QGK6MQ=GS1.1.1740805728.17.0.1740805735.0.0.0; _fbp=fb.1.1740806059199.527055654643871937; nauk_at=eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzMuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMzLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIxIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAzLTAxVDEwOjM4OjU1IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc0MTE2NTg1OCwidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NDExNjIyNTgsImp0aSI6IjA2YWQwMjBiNDc1NjQ5MTJhMWRjZjczMmIzZDhkNmRiIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1yZ2JiMiJ9.bINKV_ioApLrIp4Ds4rs4Hliex7wQvCMRCPNVuf_7OlB22jD4qW5gdyB-04hrSOU3SfbJHkIFqSCzdYefNzAGJYrZ1w2oCphhaFPf47v1Hqq0lKDsU2o_Xh1EmMP4WjnAVawMAirDt73lJ7sM9tPMVW2lg77JeFp4r4_zwXwhBsvVhhtqaTpUGujayXkOTSJHEayi6IrFGvHaMFetlyljrpcLqCrxkj84Jd-5N0KsmlxB0O2atPmq_fEFYj-QHn3fUVpK1a2jKOcgPbPWJdRvXI-XSS6Pc68NNMPSlxNMyOENM0NfWhqNbB_M25xjNKRqeeHO2R4rjEJ4GltzoKirg; is_login=1; failLoginCount=0; bm_mi=25C4DF0C9D23844026BF8545A7493391~YAAQjwFAF6WhwkqVAQAAZd5cZRu5bQVSPvxOehBLDgCH1cmOPWX9ywbvErvCGeCaLm22dkGCKIYGTem+AmT4QNTprdMalY/fzqOL+lg6hKbs35JO0YDgoLdBqnHiUzqLFJXEAiM0Xw9bZBNtSTi+19zxqGuw7klhg/05I6ZmqPNajvOCYCokFMTyqmx2hhlXh/bcyZ977E2NpjWMlsMLjfQ24MM6AlUb5DwtLlraO7V0yUjv/rfAGvWSraND04sqx1G27/16MBGe53NMpDFxYRusUXlOJa7OXoCk3rOhP6pmbPoGAf6tcBiNhuTBcCbIh0JkWousXWWjtrwf~1; bm_sv=72EC5EECED8663E61B5F53296CFAB689~YAAQjwFAF6ahwkqVAQAAZd5cZRuwzC+T97bc7pMME3dGvc4sDUteTrqN1qgT4Jv++F/GMc3Gl4i8bpK0GY1u71fQbOOm7W01RZpapKss/D2GBDqqglk0spGtm+X+kNm66PoPYHJBBKPfb/XfviCjQUstW2NPkTQzhA1lZcyIUhifgpNvDnzbe+Borfyn0YMP+Bx/R1PjLQelyXXL/72A6J0xKSm1iu617QbKaIc0fp9X2pmJr3U/uqbDgbUMExFd~1; ACTIVE=1741162794; PHPSESSID=g26v5nevtamg5t75ncf959n0hm; ak_bmsc=6B919B2227BDDF9899767992AC73D3E5~000000000000000000000000000000~YAAQjwFAF7CFw0qVAQAA089jZRtOgHd6WBOJ6LvWJzUdpX1gsX2TbeKQwZoC7Ld350XAY3ksZNLAVV3cTqb1iFh8rmYzX4oBA/jLCSJOHjqTUvZB6O4eE8T2NmcEmpZ1IMah6SLBWsRKgAlL6MPuEHZUbJGAE8e2wV6g8ZbqcphaxmD9L2osba21SJTpoZLDjbYKi62m/UrWf7dVnO9P52ZsXMyfT5g1CMkbNIN12ebHO68jfFlcU31/u9VeawT3LBgLscdPXVsuYuDd6+l+wiO1HDNk2BWcPn+tt1wJIswBjSzS1t7coWAKwvOoDxPV/cFqyquq3Ywx3FBIKRqh3F9ESRCj2fPCmpKVFeSYaTxAMcqD/yuVmzQxKUzj8AQ8OdjVzI/lma8jsKrJ35Sj8lSa7No2Z74hW85rXMY3MKMHeTHE9UGw8PpPmC9IbcOtQ60LurYFLiykWolkDzSgXPR/ffK68tuKe83IaYyA2jPn/TI3lYiuNMlzgnBlFpk=; HOWTORT=ul=1741163260430&r=https%3A%2F%2Fwww.naukri.com%2Fjob-listings-manager-software-engineering-planview-india-private-limited-bengaluru-5-to-8-years-030325502839%3Fsrc%3Ddrecomm_apply%26sid%3D17411627956384809%26xp%3D2%26px%3D1&hd=1741163260596; _ga_K2YBNZVRLL=GS1.1.1741162260.66.1.1741163260.55.0.0',
     }),
   };
   return headers;
@@ -79,25 +80,21 @@ const getSimJobsAPI = (jobId) =>
   );
 
 const loginAPI = (creds) =>
-  fetch("https://www.naukri.com/central-login-services/v1/login", 
-  {
+  fetch("https://www.naukri.com/central-login-services/v1/login", {
     headers: {
       ...getHeaders(false, false),
       systemid: "jobseeker",
     },
     body: `{"username": "${creds.username}","password":"${creds.password}"}`,
     method: "POST",
-  }
-);
+  });
 
 const getRecommendedJobsAPI = async (clusterId) =>
-  fetch("https://www.naukri.com/jobapi/v2/search/recom-jobs", 
-  {
+  fetch("https://www.naukri.com/jobapi/v2/search/recom-jobs", {
     headers: getHeaders(true, false),
     body: `{"clusterId":"${clusterId}","src":"recommClusterApi","clusterSplitDate":{"apply":"${getFormattedDate()}","preference":"${getFormattedDate()}","profile":"${getFormattedDate()}","similar_jobs":"${getFormattedDate()}"}}`,
     method: "POST",
-  }
-);
+  });
 
 const getProfileDetailsAPI = async () =>
   fetch(
@@ -110,17 +107,45 @@ const getProfileDetailsAPI = async () =>
   );
 
 const incrementCounterAPI = async () => {
-  fetch (
-    "https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter",
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: null,
-      method: "GET",
-    }
-  )
-}
+  fetch("https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: null,
+    method: "GET",
+  });
+};
+
+
+// fetch("https://www.naukri.com/jobapi/v3/search?noOfResults=20&urlType=search_by_keyword&searchType=adv&keyword=java%20full%20stack%20developer&pageNo=1&k=java%20full%20stack%20developer&nignbevent_src=jobsearchDeskGNB&seoKey=java-full-stack-developer-jobs&src=jobsearchDesk&latLong=18.754004_73.877585", {
+//   "headers": {
+//     "accept": "application/json",
+//     "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
+//     "appid": "109",
+//     "authorization": "Bearer eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzMuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMzLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIxIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAzLTAxVDEwOjM4OjU1IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc0MTI4OTUyNywidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NDEyODU5MjcsImp0aSI6IjA2YWQwMjBiNDc1NjQ5MTJhMWRjZjczMmIzZDhkNmRiIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1td2hnOCJ9.r75m962YKxssZIM9b6lHjrmjdGqRtFXxTYmg3QPezVhAKVOh331a5__zDa1M9CnvrlPkatjsL_x8ZxWusNQE4OYumbqPhPaZqRuRrWd3q6fqsAJJJRheOSNkSyQjzxquLDRqptYGUeEGs8TqEkbcG6AVFx5dw0M4iRO6B7hywUqGNRuDkPISqetpmhjlSuZ8ThY9DO8QkYFpNgiCwBjRt7xdeV_5cLd6osC4PKC1b9xSBTMw0gpoROjB0kK8iWBnahfvjeo5BtiR2WAH2jGtjABA3IHYDcP_PvP_kUGS9hu0CAMxXyPn98tugVbOoXHpcW3WNiZAvm0BZYp733SI4Q",
+//     "clientid": "d3skt0p",
+//     "content-type": "application/json",
+//     "gid": "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
+//     "nkparam": "oFYlsMP9SN/18UTJyWR0J4Far8aGlf/RgiTehgjzAfodyCTha++NVMb+jAOJjH4rULRVnn65HS1K0dD3clyVyQ==",
+//     "priority": "u=1, i",
+//     "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Microsoft Edge\";v=\"133\", \"Chromium\";v=\"133\"",
+//     "sec-ch-ua-mobile": "?0",
+//     "sec-ch-ua-platform": "\"Windows\"",
+//     "sec-fetch-dest": "empty",
+//     "sec-fetch-mode": "cors",
+//     "sec-fetch-site": "same-origin",
+//     "systemid": "Naukri",
+//     "cookie": "_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; _gcl_au=1.1.1303359034.1734549824; test=naukri.com; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; _ga=GA1.1.1388380775.1734549825; tStp=1737416650760; g_state={\"i_p\":1737657921031,\"i_l\":1}; ninjas_new_marketing_token=55944671e42bfe1914d9ff0ff85958bc; ph_phc_s4aJa5RpiiZlHbbxy4Y1Btjhosozg9ECrSuJNVrvZuP_posthog=%7B%22distinct_id%22%3A636236%7D; _clck=1xl6nx5%7C2%7Cftq%7C0%7C1882; _ga_7TYVEWTVRG=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_JCSR1LRE3X=GS1.1.1740493309.1.1.1740493404.0.0.0; nauk_rt=06ad020b47564912a1dcf732b3d8d6db; nauk_sid=06ad020b47564912a1dcf732b3d8d6db; nauk_otl=06ad020b47564912a1dcf732b3d8d6db; nauk_ps=default; _ga_T749QGK6MQ=GS1.1.1740805728.17.0.1740805735.0.0.0; _fbp=fb.1.1740806059199.527055654643871937; nauk_at=eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzMuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMzLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIxIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAzLTAxVDEwOjM4OjU1IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc0MTI4OTUyNywidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NDEyODU5MjcsImp0aSI6IjA2YWQwMjBiNDc1NjQ5MTJhMWRjZjczMmIzZDhkNmRiIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1td2hnOCJ9.r75m962YKxssZIM9b6lHjrmjdGqRtFXxTYmg3QPezVhAKVOh331a5__zDa1M9CnvrlPkatjsL_x8ZxWusNQE4OYumbqPhPaZqRuRrWd3q6fqsAJJJRheOSNkSyQjzxquLDRqptYGUeEGs8TqEkbcG6AVFx5dw0M4iRO6B7hywUqGNRuDkPISqetpmhjlSuZ8ThY9DO8QkYFpNgiCwBjRt7xdeV_5cLd6osC4PKC1b9xSBTMw0gpoROjB0kK8iWBnahfvjeo5BtiR2WAH2jGtjABA3IHYDcP_PvP_kUGS9hu0CAMxXyPn98tugVbOoXHpcW3WNiZAvm0BZYp733SI4Q; is_login=1; failLoginCount=0; ak_bmsc=BC103C3831C8016FC5CFA7E9FC6E5BC5~000000000000000000000000000000~YAAQjwFAF00aZ0uVAQAAx626bBt/29OCk/7yYRldIZsOu7RQP5TXegxYWcfkX5iqiAPwdyy7wlCIfCDPb2V+ewfjHcwJUUOK5GMOqmUy1qxo/HjC/kWFMJ5ALI0Vk370q5IvvrV97B+B1KDBsBJFMQ0eZM/XEwgtqEOT/De4patQOoiwE3KIn7f5cLb77C8NmyFExjm5F0v9AkXW3u8XU8oUFEw2QOP/izXWt4yLxD5aNXte4TaGdMnt2f+dRZLy7h6I8gRNScXSxU2j72E3anRc/qmIIwKOScZbjFxI3qThN9qEB0gd1VjdVa7uvRVoqwJWe/63IWdcYCKSGUebeF41fnzIDUCB0kemGi5PYQ7D/yz/BLZH5V18dZJHfbEHRs757R86JiB5hrZNvzOJfR/EydiqbQXdpy1HwfT1RvXfBiPqKmil/OdHvwe5Bwozn8d4KFTuydrQOMs/0xrcjv5ToJavKN4uxs7XbDpxtgc8UebTnqqjRz+fAMYXA/PFMkM=; ACTIVE=1741285931; PHPSESSID=sdpmhhaudel96ig54mq4nc2dh1; bm_mi=C2EDEF31373A99607C65510A813F6A8E~YAAQjwFAF24cZ0uVAQAA9vC6bBvcPGVYLpivIOHQylFRlYoWH1iBKp136ki1LnOwetNPN30G6PJR8WaV0/qG+56VTYqPpDltU+icCfv/notW2LwJdmpi6x/ZfptdY5KMO7/ovK7BfzTUZ2GsXzU7p0mLtq6x9jxjhAmEv0k4n7rg8g/5+FkFOHsr7d9Ky1FuFsFlWga+dp1QGFmCqC77FsreDtG/D0sXEwEtDCvwY7PM4xmJpGPWhXLFAnlosLpslfKfCXDFlTUEdZhT4vG+xF4zwvFcdUN1IDKdPiKSpLlU4eSFt+gT7v/MDNt9jcDLEjhaEaOnk/xMC1sNihZgEZ3mPA9vpowMZsA=~1; bm_sv=B9F9B80680476F4C5A6E33AA5509801B~YAAQjwFAF4EdZ0uVAQAA6RK7bBuT6vO03qr9a83eeZySbNhnKs1RLzOmxGeFliLnv9mAC9Mo22hfAaQwpsXuEfRxTFRRHeRLqFLUfwK9orfhwvFGTXLKjnXMUUvrythhVx5RyhmsVdjqgKlUqG1nR1w/OedHERYgUna/hFuLa+62uv0OtUl+Ak8Tu28XWAxe8Vx398T79MVPmLf/bJnl+VsoVbar8x0Z2t0emqEen1pkVx5OOGjplnVzNnAucJxfbA==~1; HOWTORT=cl=1741285931078&r=https%3A%2F%2Fwww.naukri.com%2Fjava-full-stack-developer-jobs%3Fk%3Djava%2520full%2520stack%2520developer%26nignbevent_src%3DjobsearchDeskGNB&nu=https%3A%2F%2Fwww.naukri.com%2Fmnjuser%2Frecommendedjobs&ul=1741285954105&hd=1741285954342; _ga_K2YBNZVRLL=GS1.1.1741285928.67.1.1741285954.34.0.0",
+//     "Referer": "https://www.naukri.com/java-full-stack-developer-jobs?k=java%20full%20stack%20developer&nignbevent_src=jobsearchDeskGNB",
+//     "Referrer-Policy": "strict-origin-when-cross-origin"
+//   },
+//   "body": null,
+//   "method": "GET"
+// }).then(async (res) => {
+//   const data = await res.json();
+//   console.log(data);
+// })
+
 
 module.exports = {
   applyJobsAPI,
@@ -130,5 +155,5 @@ module.exports = {
   loginAPI,
   getRecommendedJobsAPI,
   getProfileDetailsAPI,
-  incrementCounterAPI
+  incrementCounterAPI,
 };

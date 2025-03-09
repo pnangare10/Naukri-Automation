@@ -11,6 +11,7 @@ const { localStorage, openFolder, openUrl } = require("./helper");
 const aiPrompts = require("./prompts");
 let generativeModel = null; // Global variable to store the instance
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { documentQA, callFunc } = require("./vectorSearch");
 
 /**
  * Captures user configuration through CLI prompts.
@@ -167,6 +168,7 @@ const getGeminiUserConfiguration = async (preferences) => {
       message: "Enter the text model (e.g., gemini-1.5-flash-002):",
       default: genAiConfig.textModel || "gemini-1.5-flash-002",
       choices: [
+        { name: "gemini-2.0-flash-001", value: "gemini-2.0-flash-001" },
         { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
         { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
         { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
@@ -330,6 +332,7 @@ const checkSuitability = async (job, profile) => {
 
 const answerQuestion = async (questions, profileDetails) => {
   try {
+    debugger;
     const prompt = aiPrompts.answerPrompt(questions, profileDetails);
     let answer = await getModelResponse(prompt);
     const jsonData = answer?.includes("```json")
@@ -348,12 +351,12 @@ const answerQuestion = async (questions, profileDetails) => {
   }
 };
 
-const pingModel = async () => {
+const pingModel = async (prompt) => {
   try {
     let response;
     const model = await getGeminiModel();
     if (model == null) return null;
-    const result = await model.generateContent("Hello How are you");
+    const result = await model.generateContent(prompt ?? "Hello How are you");
     console.log(result.response.text());
   } catch (e) {
     console.log("Error while generating Assistant response: ");
@@ -362,10 +365,13 @@ const pingModel = async () => {
   }
 };
 
+// callFunc();
+
 module.exports = {
   checkSuitability,
   answerQuestion,
   getGeminiUserConfiguration,
   initializeGeminiModel,
   getGeminiModel,
+  pingModel
 };

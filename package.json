@@ -26,8 +26,10 @@
     "@google-cloud/vertexai": "^1.1.0",
     "@google/generative-ai": "^0.21.0",
     "@inquirer/prompts": "^7.2.3",
+    "client-vector-search": "^0.2.0",
     "csv-writer": "^1.6.0",
     "natural": "^8.0.1",
-    "naukri-automation-tool": "file:"
+    "naukri-automation-tool": "file:",
+    "vectorious": "^6.1.14"
   }
 }

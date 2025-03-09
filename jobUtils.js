@@ -178,11 +178,13 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
 //Search all the jobs
 const searchJobs = async (pageNo, keywords, repetitions) => {
   try {
-    const data = await searchJobsAPI(pageNo, keywords).then((results) => {
+    const data = await searchJobsAPI(pageNo, keywords).then(async (results) => {
       if (results.status == 200) return results.json();
       else if (results.status == 403) {
         console.log("403 Forbidden : " + results.statusText);
         throw new Error("403 Forbidden");
+      } else {
+        console.log(await results.json())
       }
     });
     if (!data?.jobDetails) {
