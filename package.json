@@ -1,13 +1,14 @@
 {
-  "name": "naukri-automation-tool",
-  "version": "2.6.3",
+  "name": "naukri-ninja",
+  "version": "2.8.0",
   "description": "Naukri automation tool to fetch, filter, and apply for jobs automatically using gen ai.",
   "main": "index.js",
   "author": "Pranesh Nangare",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data",
-    "dev": "node index.js"
+    "dev": "node --no-warnings index.js",
+    "pkg": "pkg . --output naukri-ninja.exe --targets node18-win-x64"
   },
   "keywords": [
     "automation",
@@ -20,16 +21,16 @@
   ],
   "license": "ISC",
   "bin": {
-    "naukri-automation-tool": "index.js"
+    "naukri-ninja": "index.js"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.1.0",
     "@google/generative-ai": "^0.21.0",
     "@inquirer/prompts": "^7.2.3",
-    "client-vector-search": "^0.2.0",
     "csv-writer": "^1.6.0",
-    "natural": "^8.0.1",
-    "naukri-automation-tool": "file:",
-    "vectorious": "^6.1.14"
+    "dotenv": "^16.4.7",
+    "naukri-ninja": "file:",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.10.0"
   }
 }

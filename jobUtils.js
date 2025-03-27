@@ -6,6 +6,8 @@ const {
   loginAPI,
   getRecommendedJobsAPI,
   getProfileDetailsAPI,
+  matchScoreAPI,
+  getResumeAPI,
 } = require("./api");
 
 const {
@@ -86,6 +88,7 @@ const applyForJobs = async (jobs, applyData) => {
 
 const getJobInfo = async (jobIds, batchSize = 5) => {
   const profile = localStorage.getItem("profile");
+  const preferences = localStorage.getItem("preferences");
   const jobInfo = [];
 
   try {
@@ -95,9 +98,19 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
       // Process the current batch in parallel
       const batchPromises = batch.map(async (jobId) => {
         try {
-          const response = await getJobDetailsAPI(jobId);
-          if (response.status === 200) {
-            const data = await response.json();
+          const matchScoreResponse = await matchScoreAPI(jobId);
+          let matchScore = null;
+          if (matchScoreResponse.status === 200) {
+            matchScore = await matchScoreResponse.json();
+            if (
+              matchScore.Keyskills == 0 &&
+              preferences.matchStrategy === "naukriMatching"
+            )
+              return null;
+          }
+          const jobDetailsResponse = await getJobDetailsAPI(jobId);
+          if (jobDetailsResponse.status === 200) {
+            const data = await jobDetailsResponse.json();
             if (data.jobDetails) {
               const {
                 salaryDetail,
@@ -128,34 +141,34 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
                 companyName: companyDetail.name,
                 description,
                 title,
+                matchScore: matchScore?.Keyskills,
               };
             }
-          } else if (response.status === 403) {
-            console.log("403 Forbidden:", response);
+          } else if (jobDetailsResponse.status === 403) {
+            console.log("403 Forbidden:", jobDetailsResponse);
             throw new Error("403 Forbidden");
-          } else if (response.status === 303) {
-            const data = await response.json();
+          } else if (jobDetailsResponse.status === 303) {
+            const data = await jobDetailsResponse.json();
             if (data?.metaSearch?.isExpiredJob === "1") {
               process.stdout.write("Expired Job \r");
             }
           } else {
             console.log(
               `Error fetching job details for Job ID: ${jobId}
-              Status: ${response.status}`
+              Status: ${jobDetailsResponse.status}`
             );
           }
           return null; // Return null if no valid job data is found.
         } catch (error) {
           console.error(
             `Error fetching job details for Job ID: ${jobId}`,
-            error
+            error.message
           );
           return null; // Return null on error to avoid failing the entire batch.
         }
       });
 
       const batchResults = await Promise.all(batchPromises);
-      // debugger;
       // Add the results of the current batch to the overall jobInfo array
       jobInfo.push(...batchResults.filter((job) => job !== null));
 
@@ -170,7 +183,7 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
 
     return jobInfo;
   } catch (error) {
-    console.error("Unexpected error while fetching job info:", error);
+    console.error("Unexpected error while fetching job info:", error.message);
     throw error;
   }
 };
@@ -184,7 +197,7 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
         console.log("403 Forbidden : " + results.statusText);
         throw new Error("403 Forbidden");
       } else {
-        console.log(await results.json())
+        console.log(await results.json());
       }
     });
     if (!data?.jobDetails) {
@@ -201,7 +214,7 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
     }
     return jobIds;
   } catch (error) {
-    console.error(error);
+    console.error(error.message);
     if (error.message == "403 Forbidden") throw new Error("403 Forbidden");
     return [];
   }
@@ -248,7 +261,7 @@ const getRecommendedJobs = async () => {
       const data = await response.json();
       return data.jobDetails?.map((job) => job.jobId) || [];
     } catch (error) {
-      console.error(`Error fetching jobs for cluster: ${cluster}`, error);
+      console.error(`Error fetching jobs for cluster: ${cluster}`, error.message);
       return []; // Return an empty array on error to avoid failing all promises.
     }
   });
@@ -368,21 +381,19 @@ const handleQuestionnaire = async (data, enableGenAi) => {
 
 const clearJobs = async () => {
   const profile = await localStorage.getItem("profile");
-  console.log("Clearing jobs");
+  console.debug("Clearing jobs");
   writeToFile({}, "searchedJobs", profile.id);
   writeToFile({}, "filteredJobIds", profile.id);
 };
 // main function90
 
-const findNewJobs = async (noOfPages, repetitions) => {
+const findNewJobs = async (noOfPages=5, repetitions=1) => {
   const preferences = await localStorage.getItem("preferences");
   const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
-  getRecommendedJobs().then((recommendedJobs) => {
-    searchedJobIds.push(...recommendedJobs);
-    console.log(`Found ${recommendedJobs.length} recommended jobs`);
-  });
+  const recommendedJobs = getRecommendedJobs();
+
   const promises = [];
   for (let i = 0; i < noOfPages; i++) {
     const jobs = searchJobs(
@@ -396,12 +407,14 @@ const findNewJobs = async (noOfPages, repetitions) => {
   jobs.forEach((job) => {
     searchedJobIds.push(...job);
   });
+  const recommendedJobIds = await recommendedJobs;
+  searchedJobIds.push(...recommendedJobIds);
   const uniqueJobIds = Array.from(new Set(searchedJobIds));
   console.log(
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
-  const emailIds = getEmailsIds(jobInfo);
+  const emailIds = getEmailsIds(jobInfo, profile.id);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   return filteredJobs;
@@ -431,6 +444,7 @@ const getExistingJobs = async () => {
 const getUserProfile = async () => {
   const response = await getProfileDetailsAPI();
   const userData = await response.json();
+
   return constructUser(userData);
 };
 
@@ -456,11 +470,16 @@ const getPreferences = async (user) => {
   if (!preferences) {
     preferences = {};
   }
-  let matchStrategy = doConfiguration ? null : preferences.matchStrategy;
+  let matchStrategy = "naukriMatching"; //doConfiguration ? null : preferences.matchStrategy;
   if (!matchStrategy) {
     matchStrategy = await prompts.select({
       message: "Select a strategy to match the jobs",
       choices: [
+        {
+          name: "Naukri Matching",
+          value: "naukriMatching",
+          description: "Use Naukri Matching strategy to match the jobs",
+        },
         {
           name: "Keywords Matching",
           value: "keywords",
@@ -489,32 +508,37 @@ const getPreferences = async (user) => {
         {
           name: "Yes",
           value: true,
-          description: "Use gen ai model to generate answers for questions asked in job application"
+          description:
+            "Use gen ai model to generate answers for questions asked in job application.",
         },
         {
           name: "No",
           value: false,
-          description: "Skip gen ai setup."
-        }
-      ]
+          description:
+            "Skip gen ai setup. This will skip the jobs which require question answering.",
+        },
+      ],
     });
     preferences.enableGenAi = false;
     if (enableGenAi || matchStrategy === "ai") {
-      let res = await prompts.select({
-        message: "Please select gen ai model to use",
-        choices: [
-          { name: "Google Gemini Model", value: "gemini" },
-          { name: "ChatGPT", value: "chatgpt" },
-        ],
-      });
-      if (res !== "gemini") {
-        console.log(
-          "There is only gemini model implementation available currently, selecting gemini as default"
-        );
-        res = "gemini";
-      }
+      let res = "gemini";
+      // let res = await prompts.select({
+      //   message: "Please select gen ai model to use",
+      //   choices: [
+      //     { name: "Google Gemini Model", value: "gemini" },
+      //     { name: "ChatGPT", value: "chatgpt" },
+      //   ],
+      // });
+      // if (res !== "gemini") {
+      //   console.log(
+      //     "There is only gemini model implementation available currently, selecting gemini as default"
+      //   );
+      //   res = "gemini";
+      // }
       if (res === "gemini") {
-        const { config, enableGenAi } = await getGeminiUserConfiguration(preferences);
+        const { config, enableGenAi } = await getGeminiUserConfiguration(
+          preferences
+        );
         preferences.genAiConfig = config;
         preferences.enableGenAi = enableGenAi;
       }
@@ -524,13 +548,23 @@ const getPreferences = async (user) => {
       const enableManualAnswering = await prompts.select({
         message: "Would you like to manually answer the questions?",
         choices: [
-          { name: "No", value: false, description: "Jobs which require question answering will be skipped." },
-          { name: "Yes", value: true, description: "You will have to enter the answers manually. (Not recommended, defeats the purpose of automation :) )" },
+          {
+            name: "No",
+            value: false,
+            description:
+              "Jobs which require question answering will be skipped.",
+          },
+          {
+            name: "Yes",
+            value: true,
+            description:
+              "You will have to enter the answers manually. (Not recommended, defeats the purpose of automation :) )",
+          },
         ],
-        description: "Selecting no will result skipping the jobs which require question answering."
+        description:
+          "Selecting no will result skipping the jobs which require question answering.",
       });
       preferences.enableManualAnswering = enableManualAnswering;
-      
     }
   }
 
@@ -553,10 +587,10 @@ const getPreferences = async (user) => {
     let res = await prompts.input({
       message: `Here are current desired roles:
     ${desiredRoles}
-    Please enter more desired roles in comma separated format
+    Please enter more desired roles in comma separated format (for example: "Software Engineer, Developer, Analyst")
     Hit enter to skip\n`,
     });
-    // debugger;
+    // ;
     if (res !== "") {
       res.split(",").forEach((role) => {
         preferences.desiredRole.push(role.trim());
@@ -566,37 +600,70 @@ const getPreferences = async (user) => {
     res = await prompts.input({
       message: `Current keywords to match the jobs:
     ${keywords}
-    Please enter more keywords to match the jobs in comma separated format
+    Please enter more keywords to match the jobs in comma separated format (Java, React, HTML, CSS, etc.)
     Hit enter to skip
-    Note: Include variation of the keywords as well to match correctly.\n`,
+    Note: Include variation of the keywords as well to match correctly.(for example: use reactjs instead of react.js)\n`,
     });
 
     if (res !== "") {
       res.split(",").forEach((keyword) => {
-        preferences.keywords.push(keyword.trim());
+        preferences.keywords.push(keyword.trim().toLowerCase());
       });
     }
   }
   if (doConfiguration || !preferences.noOfPages || !preferences.dailyQuota) {
-    let res = await prompts.number({
-      message: "Enter the number of pages to search for jobs",
-      default: 5,
-      min: 1,
-      max: 10,
-    });
-    preferences.noOfPages = res;
+    // let res = await prompts.number({
+    //   message: "Enter the number of pages to search for jobs",
+    //   default: 5,
+    //   min: 1,
+    //   max: 10,
+    // });
+    preferences.noOfPages = 5;
     res = await prompts.number({
       message: "Enter the number of jobs to apply for on daily basis",
       default: 40,
       min: 1,
       max: 50,
+      description:
+        "This is the number of jobs you want to apply for on daily basis, Maximum quota is 50",
     });
     preferences.dailyQuota = res;
   }
   return preferences;
 };
 
+const getLinkedInProfile = async () => {
+  const linkedInProfile = await prompts.input({
+    message: "Please enter your LinkedIn profile URL.",
+  });
+  return linkedInProfile;
+};
+
+const getResume = async () => {
+  try {
+    debugger;
+    const profile = await localStorage.getItem("profile");
+    ;
+    const response = await getResumeAPI(profile.profile.profileId);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const filename = "Resume.pdf";
+
+    writeToFile(buffer, filename, null, (isBuffer = true));
+    return filename;
+  } catch (error) {
+    console.error("Error fetching resume : ", error.message);
+    return null;
+  }
+};
+
 const constructUser = async (apiData) => {
+  ;
   const user = {
     id: apiData.profile[0].name,
     userDetails: {
@@ -636,6 +703,7 @@ const constructUser = async (apiData) => {
       abilities: lang.ability,
     })),
     profile: {
+      profileId: apiData.profileAdditional.profileId,
       keySkills: apiData.profile[0].keySkills,
       birthDate: apiData.profile[0].birthDate,
       gender: apiData.profile[0].gender == "M" ? "Male" : "Female",
@@ -658,7 +726,20 @@ const constructUser = async (apiData) => {
       desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
       currentLocation: ` ${apiData.profile[0].city.value}, ${apiData.profile[0].country.value}`,
     },
+    onlineProfile: apiData.onlineProfile.map((profile) => ({
+      type: profile.profile,
+      url: profile.url,
+    })),
+    workSamples: apiData.workSample
   };
+  if (!user.onlineProfile.find((profile) => profile.type === "LinkedIn")) {
+    const linkedInProfile = await getLinkedInProfile();
+    user.onlineProfile.push({
+      type: "LinkedIn",
+      url: linkedInProfile,
+    });
+  }
+  ;
   const preferences = await getPreferences(user);
   return { user, preferences };
 };
@@ -697,4 +778,5 @@ module.exports = {
   getUserProfile,
   constructUser,
   manageProfiles,
+  getResume,
 };

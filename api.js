@@ -1,5 +1,7 @@
 const { getFormattedDate, localStorage } = require("./helper");
-
+const fs = require("fs");
+const path = require("path");
+const { writeToFile } = require("./ioUtils");
 const commonHeaders = {
   accept: "application/json",
   "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -10,7 +12,8 @@ const commonHeaders = {
   gid: "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
   pragma: "no-cache",
   priority: "u=1, i",
-  "nkparam": "oFYlsMP9SN/18UTJyWR0J4Far8aGlf/RgiTehgjzAfodyCTha++NVMb+jAOJjH4rULRVnn65HS1K0dD3clyVyQ==",
+  nkparam:
+    "oFYlsMP9SN/18UTJyWR0J4Far8aGlf/RgiTehgjzAfodyCTha++NVMb+jAOJjH4rULRVnn65HS1K0dD3clyVyQ==",
   "sec-ch-ua":
     '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
   "sec-ch-ua-mobile": "?0",
@@ -106,6 +109,21 @@ const getProfileDetailsAPI = async () =>
     }
   );
 
+const matchScoreAPI1 = async (jobId) => {
+  fetch(`https://www.naukri.com/jobapi/v3/job/${jobId}/matchscore`, {
+    headers: getHeaders(true, true),
+    body: null,
+    method: "GET",
+  });
+};
+
+const matchScoreAPI = async (jobId) =>
+  fetch(`https://www.naukri.com/jobapi/v3/job/${jobId}/matchscore`, {
+    headers: getHeaders(true, false),
+    body: null,
+    method: "GET",
+  });
+
 const incrementCounterAPI = async () => {
   fetch("https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter", {
     headers: {
@@ -116,36 +134,15 @@ const incrementCounterAPI = async () => {
   });
 };
 
-
-// fetch("https://www.naukri.com/jobapi/v3/search?noOfResults=20&urlType=search_by_keyword&searchType=adv&keyword=java%20full%20stack%20developer&pageNo=1&k=java%20full%20stack%20developer&nignbevent_src=jobsearchDeskGNB&seoKey=java-full-stack-developer-jobs&src=jobsearchDesk&latLong=18.754004_73.877585", {
-//   "headers": {
-//     "accept": "application/json",
-//     "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
-//     "appid": "109",
-//     "authorization": "Bearer eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzMuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMzLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIxIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAzLTAxVDEwOjM4OjU1IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc0MTI4OTUyNywidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NDEyODU5MjcsImp0aSI6IjA2YWQwMjBiNDc1NjQ5MTJhMWRjZjczMmIzZDhkNmRiIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1td2hnOCJ9.r75m962YKxssZIM9b6lHjrmjdGqRtFXxTYmg3QPezVhAKVOh331a5__zDa1M9CnvrlPkatjsL_x8ZxWusNQE4OYumbqPhPaZqRuRrWd3q6fqsAJJJRheOSNkSyQjzxquLDRqptYGUeEGs8TqEkbcG6AVFx5dw0M4iRO6B7hywUqGNRuDkPISqetpmhjlSuZ8ThY9DO8QkYFpNgiCwBjRt7xdeV_5cLd6osC4PKC1b9xSBTMw0gpoROjB0kK8iWBnahfvjeo5BtiR2WAH2jGtjABA3IHYDcP_PvP_kUGS9hu0CAMxXyPn98tugVbOoXHpcW3WNiZAvm0BZYp733SI4Q",
-//     "clientid": "d3skt0p",
-//     "content-type": "application/json",
-//     "gid": "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
-//     "nkparam": "oFYlsMP9SN/18UTJyWR0J4Far8aGlf/RgiTehgjzAfodyCTha++NVMb+jAOJjH4rULRVnn65HS1K0dD3clyVyQ==",
-//     "priority": "u=1, i",
-//     "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Microsoft Edge\";v=\"133\", \"Chromium\";v=\"133\"",
-//     "sec-ch-ua-mobile": "?0",
-//     "sec-ch-ua-platform": "\"Windows\"",
-//     "sec-fetch-dest": "empty",
-//     "sec-fetch-mode": "cors",
-//     "sec-fetch-site": "same-origin",
-//     "systemid": "Naukri",
-//     "cookie": "_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; _gcl_au=1.1.1303359034.1734549824; test=naukri.com; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; _ga=GA1.1.1388380775.1734549825; tStp=1737416650760; g_state={\"i_p\":1737657921031,\"i_l\":1}; ninjas_new_marketing_token=55944671e42bfe1914d9ff0ff85958bc; ph_phc_s4aJa5RpiiZlHbbxy4Y1Btjhosozg9ECrSuJNVrvZuP_posthog=%7B%22distinct_id%22%3A636236%7D; _clck=1xl6nx5%7C2%7Cftq%7C0%7C1882; _ga_7TYVEWTVRG=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_JCSR1LRE3X=GS1.1.1740493309.1.1.1740493404.0.0.0; nauk_rt=06ad020b47564912a1dcf732b3d8d6db; nauk_sid=06ad020b47564912a1dcf732b3d8d6db; nauk_otl=06ad020b47564912a1dcf732b3d8d6db; nauk_ps=default; _ga_T749QGK6MQ=GS1.1.1740805728.17.0.1740805735.0.0.0; _fbp=fb.1.1740806059199.527055654643871937; nauk_at=eyJraWQiOiIyIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzMuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTMzLjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIxIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTAzLTAxVDEwOjM4OjU1IiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc0MTI4OTUyNywidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NDEyODU5MjcsImp0aSI6IjA2YWQwMjBiNDc1NjQ5MTJhMWRjZjczMmIzZDhkNmRiIiwicG9kSWQiOiJwcm9kLWNkNWY5OTU2ZC1td2hnOCJ9.r75m962YKxssZIM9b6lHjrmjdGqRtFXxTYmg3QPezVhAKVOh331a5__zDa1M9CnvrlPkatjsL_x8ZxWusNQE4OYumbqPhPaZqRuRrWd3q6fqsAJJJRheOSNkSyQjzxquLDRqptYGUeEGs8TqEkbcG6AVFx5dw0M4iRO6B7hywUqGNRuDkPISqetpmhjlSuZ8ThY9DO8QkYFpNgiCwBjRt7xdeV_5cLd6osC4PKC1b9xSBTMw0gpoROjB0kK8iWBnahfvjeo5BtiR2WAH2jGtjABA3IHYDcP_PvP_kUGS9hu0CAMxXyPn98tugVbOoXHpcW3WNiZAvm0BZYp733SI4Q; is_login=1; failLoginCount=0; ak_bmsc=BC103C3831C8016FC5CFA7E9FC6E5BC5~000000000000000000000000000000~YAAQjwFAF00aZ0uVAQAAx626bBt/29OCk/7yYRldIZsOu7RQP5TXegxYWcfkX5iqiAPwdyy7wlCIfCDPb2V+ewfjHcwJUUOK5GMOqmUy1qxo/HjC/kWFMJ5ALI0Vk370q5IvvrV97B+B1KDBsBJFMQ0eZM/XEwgtqEOT/De4patQOoiwE3KIn7f5cLb77C8NmyFExjm5F0v9AkXW3u8XU8oUFEw2QOP/izXWt4yLxD5aNXte4TaGdMnt2f+dRZLy7h6I8gRNScXSxU2j72E3anRc/qmIIwKOScZbjFxI3qThN9qEB0gd1VjdVa7uvRVoqwJWe/63IWdcYCKSGUebeF41fnzIDUCB0kemGi5PYQ7D/yz/BLZH5V18dZJHfbEHRs757R86JiB5hrZNvzOJfR/EydiqbQXdpy1HwfT1RvXfBiPqKmil/OdHvwe5Bwozn8d4KFTuydrQOMs/0xrcjv5ToJavKN4uxs7XbDpxtgc8UebTnqqjRz+fAMYXA/PFMkM=; ACTIVE=1741285931; PHPSESSID=sdpmhhaudel96ig54mq4nc2dh1; bm_mi=C2EDEF31373A99607C65510A813F6A8E~YAAQjwFAF24cZ0uVAQAA9vC6bBvcPGVYLpivIOHQylFRlYoWH1iBKp136ki1LnOwetNPN30G6PJR8WaV0/qG+56VTYqPpDltU+icCfv/notW2LwJdmpi6x/ZfptdY5KMO7/ovK7BfzTUZ2GsXzU7p0mLtq6x9jxjhAmEv0k4n7rg8g/5+FkFOHsr7d9Ky1FuFsFlWga+dp1QGFmCqC77FsreDtG/D0sXEwEtDCvwY7PM4xmJpGPWhXLFAnlosLpslfKfCXDFlTUEdZhT4vG+xF4zwvFcdUN1IDKdPiKSpLlU4eSFt+gT7v/MDNt9jcDLEjhaEaOnk/xMC1sNihZgEZ3mPA9vpowMZsA=~1; bm_sv=B9F9B80680476F4C5A6E33AA5509801B~YAAQjwFAF4EdZ0uVAQAA6RK7bBuT6vO03qr9a83eeZySbNhnKs1RLzOmxGeFliLnv9mAC9Mo22hfAaQwpsXuEfRxTFRRHeRLqFLUfwK9orfhwvFGTXLKjnXMUUvrythhVx5RyhmsVdjqgKlUqG1nR1w/OedHERYgUna/hFuLa+62uv0OtUl+Ak8Tu28XWAxe8Vx398T79MVPmLf/bJnl+VsoVbar8x0Z2t0emqEen1pkVx5OOGjplnVzNnAucJxfbA==~1; HOWTORT=cl=1741285931078&r=https%3A%2F%2Fwww.naukri.com%2Fjava-full-stack-developer-jobs%3Fk%3Djava%2520full%2520stack%2520developer%26nignbevent_src%3DjobsearchDeskGNB&nu=https%3A%2F%2Fwww.naukri.com%2Fmnjuser%2Frecommendedjobs&ul=1741285954105&hd=1741285954342; _ga_K2YBNZVRLL=GS1.1.1741285928.67.1.1741285954.34.0.0",
-//     "Referer": "https://www.naukri.com/java-full-stack-developer-jobs?k=java%20full%20stack%20developer&nignbevent_src=jobsearchDeskGNB",
-//     "Referrer-Policy": "strict-origin-when-cross-origin"
-//   },
-//   "body": null,
-//   "method": "GET"
-// }).then(async (res) => {
-//   const data = await res.json();
-//   console.log(data);
-// })
-
+const getResumeAPI = async (profileId) => 
+  fetch(
+    `https://www.naukri.com/cloudgateway-mynaukri/resman-aggregator-services/v1/users/self/profiles/${profileId}/resume`, {
+    headers: {
+      ...getHeaders(true, false),
+      "content-type": "application/pdf",
+    },
+    method: "GET",
+  });
 
 module.exports = {
   applyJobsAPI,
@@ -156,4 +153,6 @@ module.exports = {
   getRecommendedJobsAPI,
   getProfileDetailsAPI,
   incrementCounterAPI,
+  matchScoreAPI,
+  getResumeAPI,
 };

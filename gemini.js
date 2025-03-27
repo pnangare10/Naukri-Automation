@@ -11,8 +11,11 @@ const { localStorage, openFolder, openUrl } = require("./helper");
 const aiPrompts = require("./prompts");
 let generativeModel = null; // Global variable to store the instance
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { documentQA, callFunc } = require("./vectorSearch");
+const { documentQA, callFunc, searchSimilarChunks } = require("./vectorSearch");
+const { processDocumentEmbeddings } = require("./embeddings");
+const { getDataFromFile } = require("./ioUtils");
 
+let questionEmbeddings = null;
 /**
  * Captures user configuration through CLI prompts.
  */
@@ -23,21 +26,18 @@ const getGeminiUserConfiguration = async (preferences) => {
     const genAiConfig = preferences.genAiConfig || {};
 
     //Get the authenticaton type for gemini
-    const authType = await prompts.select({
-      type: "select",
-      name: "value",
-      message: "Select your authentication type:",
-      choices: [
-        { name: "API Key (Recommended)", value: "apiKey" },
-        { name: "Service Account", value: "serviceAccount" },
-      ],
-      default: genAiConfig.authType || "apiKey",
-    });
-
-    console.log(authType);
+    // const authType = await prompts.select({
+    //   type: "select",
+    //   name: "value",
+    //   message: "Select your authentication type:",
+    //   choices: [
+    //     { name: "API Key (Recommended)", value: "apiKey" },
+    //     { name: "Service Account", value: "serviceAccount" },
+    //   ],
+    //   default: genAiConfig.authType || "apiKey",
+    // });
+    let authType = "apiKey";
     if (authType === "serviceAccount") {
-      console.log(1);
-      console.log(authType);
       // Ensure the apikeys folder exists
       const apikeysFolderPath = path.join(__dirname, "apikeys");
       //check if the file exists and create the file if it does not exist
@@ -49,10 +49,8 @@ const getGeminiUserConfiguration = async (preferences) => {
         .readdirSync(apikeysFolderPath)
         .filter((file) => file.endsWith(".json"));
 
-      console.log(2);
       // If the folder is empty, prompt the user to add key files
       while (files.length === 0) {
-        console.log(3);
         console.log("No key files found in the 'apikeys' folder.");
         console.log(
           "Please add your Google Cloud service account key files (.json) to the 'apikeys' folder."
@@ -148,15 +146,45 @@ const getGeminiUserConfiguration = async (preferences) => {
         keyFile,
       };
     } else {
-      openUrl(`https://aistudio.google.com/app/u/3/apikey`);
-      const apiKey = await prompts.input({
-        type: "text",
-        name: "value",
-        message: "Enter your Google API Key: ",
-        default: genAiConfig.apiKey ?? "",
-        validate: (input) =>
-          input && input.length > 0 ? true : "API Key is required.",
-      });
+      let apiKey = genAiConfig.apiKey;
+      let choice = "yes";
+      if (genAiConfig.apiKey) {
+        choice = await prompts.select({
+          message: `Do you want to use the existing api key? (Current api key: ${genAiConfig.apiKey})`,
+          default: "yes",
+          choices: [
+            { name: "Yes", value: "yes" },
+            { name: "No", value: "no" },
+          ],
+        });
+        if (choice === "yes") {
+          apiKey = genAiConfig.apiKey;
+        }
+      }
+      if (!genAiConfig.apiKey || choice === "no") {
+        console.log(
+          "Please get the api key from https://aistudio.google.com/app/u/3/apikey and press enter to continue"
+        );
+        console.log(
+          "Click on create api key button and copy the api key and paste it below, You can paste using ctrl+v or right click and paste."
+        );
+
+        await prompts.input({
+          message:
+            "Press enter to continue, This will open the api key creation page.",
+        });
+
+        openUrl(`https://aistudio.google.com/app/u/3/apikey`);
+        apiKey = await prompts.input({
+          type: "text",
+          name: "value",
+          message: "Enter your Google API Key: ",
+          default: genAiConfig.apiKey ?? "",
+          validate: (input) =>
+            input && input.length > 0 ? true : "API Key is required.",
+        });
+      }
+
       preferences.genAiConfig = {
         authType,
         apiKey,
@@ -165,10 +193,13 @@ const getGeminiUserConfiguration = async (preferences) => {
 
     const textModel = await prompts.select({
       name: "value",
-      message: "Enter the text model (e.g., gemini-1.5-flash-002):",
-      default: genAiConfig.textModel || "gemini-1.5-flash-002",
+      message: "Enter the text model (e.g., gemini-2.0-flash-001):",
+      default: genAiConfig.textModel || "gemini-2.0-flash-001",
       choices: [
-        { name: "gemini-2.0-flash-001", value: "gemini-2.0-flash-001" },
+        {
+          name: "gemini-2.0-flash-001 (Recommended)",
+          value: "gemini-2.0-flash-001",
+        },
         { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
         { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
         { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
@@ -332,8 +363,29 @@ const checkSuitability = async (job, profile) => {
 
 const answerQuestion = async (questions, profileDetails) => {
   try {
-    debugger;
-    const prompt = aiPrompts.answerPrompt(questions, profileDetails);
+    if (questionEmbeddings == null) {
+      const questionsData = await getDataFromFile("questions");
+      if (questionsData && questionsData.length !== 0) {
+        const questionsDataChunks = Object.values(questionsData).map(
+          (question) => {
+            return `Question: ${question.questionName}\nAnswer: ${question.answer}`;
+          }
+        );
+        questionEmbeddings = await processDocumentEmbeddings(
+          questionsDataChunks
+        );
+      }
+    }
+    let chunks = [];
+    if(questions && questions.length !== 0 && questionEmbeddings !== null){
+      chunks = await Promise.all(
+        questions.map(async (question) => {
+          return searchSimilarChunks(question.question, questionEmbeddings);
+        })
+      );
+    }
+
+    const prompt = aiPrompts.answerPrompt(questions, profileDetails, chunks);
     let answer = await getModelResponse(prompt);
     const jsonData = answer?.includes("```json")
       ? answer.split("```json")[1]?.split("```")[0]?.trim()
@@ -346,7 +398,7 @@ const answerQuestion = async (questions, profileDetails) => {
     const data = JSON.parse(jsonData);
     return data;
   } catch (e) {
-    console.error("Error while generating Assistant response:", e);
+    console.error("Error while generating Assistant response:", e.message);
     return null;
   }
 };
@@ -365,13 +417,12 @@ const pingModel = async (prompt) => {
   }
 };
 
-// callFunc();
-
 module.exports = {
   checkSuitability,
   answerQuestion,
   getGeminiUserConfiguration,
   initializeGeminiModel,
   getGeminiModel,
-  pingModel
+  pingModel,
+  getModelResponse,
 };

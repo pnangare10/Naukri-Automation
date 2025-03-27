@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { exec } = require("child_process");
+const { exec, spawn, spawnSync } = require("child_process");
 
 const memoryStorage = {};
 
@@ -29,7 +29,7 @@ const getFormattedDate = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-const openUrl = (url) => {
+const openUrl = async (url) => {
   // Open the folder in the file explorer
   const command =
     process.platform === "win32"
@@ -40,10 +40,13 @@ const openUrl = (url) => {
   exec(command, (error) => {
     if (error) {
       console.error("Error opening folder:", error.message);
-    } else {
-      console.log("Path opened successfully:", url);
     }
   });
+};
+
+const openFile = (filePath, callback) => {
+  const command = process.platform === "win32" ? "nano" : "nano";
+  spawnSync(command, [filePath], { stdio: "inherit" }); // Waits until nano is closed
 };
 
 const openFolder = (folderPath) => {
@@ -56,9 +59,13 @@ const openFolder = (folderPath) => {
   });
 };
 
+// openFile("file.html")
+// openFolder("data")
+
 module.exports = {
   getFormattedDate,
   localStorage,
   openFolder,
   openUrl,
+  openFile,
 };

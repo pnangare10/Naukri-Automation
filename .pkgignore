@@ -1,0 +1,8 @@
+tests/
+docs/
+.git/
+.vscode/
+node_modules/
+.env
+data/
+apiKeys/

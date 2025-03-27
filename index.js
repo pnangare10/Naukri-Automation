@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+process.env.NODE_NO_WARNINGS = "1";
 
 const {
   writeToFile,
@@ -6,6 +7,7 @@ const {
   selectProfile,
   matchingStrategy,
   writeFileData,
+  askQuestion,
   getEmailsIds,
 } = require("./utils");
 
@@ -21,8 +23,15 @@ const {
 const prompts = require("@inquirer/prompts");
 const { localStorage } = require("./helper");
 const { incrementCounterAPI } = require("./api");
-
+const { getResumeAPI } = require("./api");
+const { sendEmails, setupEmails, showEmailsMenu } = require("./emailUtils");
 const repetitions = 1;
+
+const isDebugMode = process.execArgv.includes('--inspect');
+
+if (!isDebugMode) {
+  console.debug = () => {}; // Disable console.debug in dev mode
+}
 
 const doTheStuff = async (profile) => {
   const preferences = localStorage.getItem("preferences");
@@ -31,33 +40,38 @@ const doTheStuff = async (profile) => {
   try {
     console.log("Mission Job search Started...");
     const ans = await prompts.select({
-      message: `Would you like to search for new jobs?`,
+      message: `Please select a option : `,
       choices: [
-        { name: "Yes", value: true },
-        { name: "No", value: false },
+        { name: "Search for new jobs", value: 1 },
+        { name: "Use previously searched jobs", value: 2 },
+        { name: "Send emails to recruiters", value: 3 },
       ],
     });
-    if (!ans) {
+    if (ans === 2) {
       jobIds = await getExistingJobs();
     }
-    if (ans || jobIds.length == 0) {
+    if (ans === 3) {
+      await showEmailsMenu();
+      return;
+    }
+    if ((ans === 1) || jobIds.length === 0) {
       jobIds = await findNewJobs(noOfPages, repetitions);
     }
     for (let i = 0; i < jobIds.length; i++) {
       try {
         const job = jobIds[i];
         const isAlreadyApplied = job.isApplied;
-        const isSuitable =
+        const isSuitable = 
           job.isSuitable || (await matchingStrategy(job, profile));
         job.isSuitable = isSuitable;
 
         if (!isSuitable || isAlreadyApplied) {
-          console.log(
+          console.debug(
             `> ${i + 1} of ${jobIds.length} | ${job.jobTitle} in ${
               job.companyName
             } | ${isAlreadyApplied ? "Already applied" : "not suitable"}`
           );
-          console.log("\n");
+          console.debug("\n");
           continue;
         }
 
@@ -87,7 +101,6 @@ const doTheStuff = async (profile) => {
           }
           jobIds[i].isApplied = true;
         }
-        debugger;
         if (result.jobs[0].status !== 200 && (preferences.enableManualAnswering || preferences.enableGenAi)) {
           const questionnaire = await handleQuestionnaire(result, preferences.enableGenAi);
           const finalResult = await applyForJobs(jobsSlot, questionnaire);
@@ -116,39 +129,37 @@ const doTheStuff = async (profile) => {
       }
     }
   } catch (e) {
-    console.error(e);
+    console.error(e.message);
   } finally {
     writeToFile(jobIds, "filteredJobIds", profile.id);
-    rl.close();
   }
 };
 
 const startProgram = async () => {
   try {
-    const args = process.argv.slice(2);
-    const command = args[args.length - 1];
-    let loginInfo;
-    if (command == "login") {
-      loginInfo = await login();
-    } else if (command !== "login" && command !== undefined) {
-      console.log("Available commands: login");
-      system.exit(1);
-    } else {
-      const profile1 = await selectProfile();
-      loginInfo = await login(profile1);
-      authorization = loginInfo.authorization;
-      localStorage.setItem("authorization", authorization);
-    }
-
+    const profile = await selectProfile();
+    const loginInfo = await login(profile);
+    const authorization = loginInfo.authorization;
+    localStorage.setItem("authorization", authorization);
     const { user, preferences } = await getUserProfile();
     const updatedProfiles = await manageProfiles(user, loginInfo);
+    debugger;
+
     localStorage.setItem("profile", user);
     localStorage.setItem("preferences", preferences);
     writeToFile(preferences, "preferences", user.id);
     writeFileData(updatedProfiles, "profiles");
+ 
     await doTheStuff(user);
   } catch (e) {
-    process.exit(1);
+    console.error("Error in main process:", e.message);
+    // process.exit(1);
+  } finally {
+    console.log("Program ended");
+    await prompts.input({
+      message:"Press ENTER to exit...",
+    });
+    rl.close();
   }
 };
 

@@ -6,6 +6,14 @@ const { localStorage } = require("./helper");
 const prompts = require("@inquirer/prompts");
 const { get } = require("http");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+const {
+  getDataFromFile,
+  getFileData,
+  writeToFile,
+  writeFileData,
+  exportFile,
+} = require("./ioUtils");
+const { matchScoreAPI } = require("./api");
 
 let selectedProfile = null;
 
@@ -29,56 +37,6 @@ const askQuestion = async (question) => {
       resolve(answer);
     });
   });
-};
-
-// Write the questions to the file
-const writeToFile = (data, fileName, profile) => {
-  //check if file exists
-  if (profile === undefined) {
-    profile = localStorage.getItem("profile").id;
-  }
-  if (!fs.existsSync(`./data/${profile}`)) {
-    fs.mkdirSync(`./data/${profile}`, { recursive: true });
-  }
-  writeFileData(data, `${profile}/${fileName}`);
-};
-
-const writeFileData = (data, fileName) => {
-  try {
-    if (!fs.existsSync(`./data`)) {
-      fs.mkdirSync(`./data`, { recursive: true });
-    }
-    fs.writeFileSync(`./data/${fileName}.json`, JSON.stringify(data), (err) => {
-      if (err) {
-        console.error(err);
-      }
-    });
-  } catch (err) {
-    console.log(err);
-  }
-};
-
-const getDataFromFile = async (fileName, profile) => {
-  if (profile === undefined) {
-    profile = await localStorage.getItem("profile");
-    profile = profile.id;
-  }
-  return getFileData(`${profile}/${fileName}`);
-};
-
-const getFileData = async (fileName) => {
-  try {
-    //check if file exists
-    if (!fs.existsSync(`./data/${fileName}.json`)) {
-      console.log(`File ${fileName} does not exist`);
-      return null;
-    }
-    const data = fs.readFileSync(`./data/${fileName}.json`);
-    return JSON.parse(data);
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
 };
 
 const filterJobs = (jobInfo) => {
@@ -113,6 +71,7 @@ const filterJobs = (jobInfo) => {
       description: jobDetails.description,
       minimumSalary: jobDetails.minimumSalary,
       maximumSalary: jobDetails.maximumSalary,
+      matchScore: jobDetails.matchScore,
     }))
     .sort((a, b) => b.maximumSalary - a.maximumSalary);
   console.log(
@@ -121,10 +80,11 @@ const filterJobs = (jobInfo) => {
   return filteredJobs;
 };
 
-const getEmailsIds = async (jobs) => {
+const getEmailsIds = async (jobs, profile) => {
   let emailIds = await getDataFromFile("hrEmails");
   if (!emailIds) emailIds = [];
   jobs?.forEach((jobDetails) => {
+    if (jobDetails.matchScore == 0) return;
     const emailId = jobDetails.description.match(
       /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
     );
@@ -146,7 +106,7 @@ const getEmailsIds = async (jobs) => {
     }
   });
   writeToFile(emailIds, "hrEmails");
-  getCsvFile(emailIds);
+  getCsvFile(emailIds, `${profile}-hrContactDetails.csv`);
   return emailIds;
 };
 
@@ -225,10 +185,24 @@ const manualMatching = async (jobInfo) => {
   return res;
 };
 
+const naukriMatching = async (jobInfo, profile) => {
+  // Check if matchScore exists and is explicitly 0 or null/undefined
+  if (jobInfo.matchScore == 0) {
+    return false;
+  } else if (jobInfo.matchScore == null || jobInfo.matchScore == undefined) {
+    const matchScore = await matchScoreAPI(jobInfo.jobId);
+    if (matchScore.Keyskills == 0) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const matchingMethods = {
   ai: aiMatching,
   manual: manualMatching,
   keywords: matchKeywords,
+  naukriMatching: naukriMatching,
 };
 
 const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
@@ -238,6 +212,9 @@ const matchingStrategy = async (jobInfo, profile, matchDescription = false) => {
   if (preferences && preferences.matchStrategy)
     matchStrategy = preferences.matchStrategy;
   switch (matchStrategy) {
+    case "naukriMatching":
+      matchingResult = await matchingMethods.naukriMatching(jobInfo, profile);
+      break;
     case "ai":
       matchingResult = await matchingMethods.ai(jobInfo, profile);
       break;
@@ -296,18 +273,32 @@ const compressProfile = (profile) => {
   return profile;
 };
 
-const getCsvFile = async (data) => {
-  const downloadsFolder = path.join(require("os").homedir(), "Downloads");
-  const csvWriter = createCsvWriter({
-    path: path.join(downloadsFolder, "hrContactDetails.csv"), // Save file to Downloads folder
-    header: Object.keys(data[0]).map((key) => ({ id: key, title: key })),
-  });
-  csvWriter
-    .writeRecords(data)
-    .then(() =>
-      console.log("CSV file was written successfully to the Downloads folder!")
-    )
-    .catch((err) => console.error("Error writing CSV file:", err));
+const getCsvFile = async (data, fileName) => {
+  try {
+    const profile = await localStorage.getItem("profile");
+    const downloadsFolder = path.join(require("os").homedir(), "Downloads");
+    // const downloadsFolder = `./data/${profile.id}`;
+    //Check if the folder exists
+    if (!fs.existsSync(downloadsFolder)) {
+      fs.mkdirSync(downloadsFolder, { recursive: true });
+    }
+    const filePath = `${downloadsFolder}/${fileName}`;
+    const csvWriter = createCsvWriter({
+      path: filePath, // Save file to Downloads folder
+      header: Object.keys(data[0]).map((key) => ({ id: key, title: key })),
+    });
+    csvWriter
+      .writeRecords(data)
+      .then(async () => {
+        // await exportFile(filePath);
+        console.log(
+          "CSV file was exported successfully to the Downloads folder!"
+        );
+      })
+      .catch((err) => console.error("Error writing CSV file:", err.message));
+  } catch (e) {
+    console.error("Error writing CSV file:", e.message);
+  }
 };
 
 module.exports = {

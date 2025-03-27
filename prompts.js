@@ -1,4 +1,4 @@
-const answerPrompt = (profileDetails, questions) => `
+const answerPrompt = (profileDetails, questions, relevantChunks) => `
 You are my job search assistant. I am applying for a job, and the recruiter has asked me a set of questions. Use the details provided below to answer the questions accurately, strictly following the specified guidelines.
 
 ### Context:
@@ -7,6 +7,9 @@ ${JSON.stringify(profileDetails)}
 
 - **Recruiter's Questions:**  
 ${JSON.stringify(questions)}
+
+- **Relevant Information:**  
+${JSON.stringify(relevantChunks)}
 
 ### Instructions:
 1. **General Guidelines:**
