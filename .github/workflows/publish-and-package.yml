@@ -3,8 +3,6 @@ name: Publish and Package
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'package.json'
 
 jobs:
   publish-and-package:
