@@ -224,7 +224,7 @@ const setupEmails = async (sendSelected = false) => {
     const res = await getConfirmation("Do you want to search for new emails?");
     if (res) {
       spinner.start("Searching for new emails...");
-      deleteFile(`data/${profile.id}/hrEmails.json`);
+      deleteFile(`${profile.id}/hrEmails.json`);
       await findNewJobs();
       let count = 0;
       spinner.update("Waiting for emails to be created ");
@@ -279,8 +279,8 @@ const clearEmails = async () => {
   try{
     spinner.start("Clearing emails...");
     const profile = await localStorage.getItem("profile");
-    deleteFile(`data/${profile.id}/hrEmails.json`);
-    deleteFile(`data/${profile.id}/hrEmails.csv`);
+    deleteFile(`${profile.id}/hrEmails.json`);
+    deleteFile(`${profile.id}/hrEmails.csv`);
     spinner.succeed(`Emails cleared successfully`);
   } catch (error) {
     spinner.fail(error.message);

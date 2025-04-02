@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const spinner = require('./spinnerUtils');
 
-const TIMESTAMP_FILE = path.join(__dirname, 'lastCheck.json');
+const TIMESTAMP_FILE = path.join(__dirname, '../data/lastCheck.json');
 const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 const {getLatestVersion} = require('./cmdUtils');

@@ -19,15 +19,16 @@ const getDataFromFile = async (fileName, profile, isBuffer = false) => {
 const getFileData = async (fileName, isBuffer = false) => {
   try {
     //check if file exists
-    if (!fs.existsSync(`./data/${fileName}${isBuffer ? '' : '.json'}`)) {
+    let dataFolder = path.join(__dirname, `../data/${fileName}${isBuffer ? '' : '.json'}`);
+    if (!fs.existsSync(dataFolder)) {
       console.debug(`File ${fileName} does not exist`);
       return null;
     }
     if (isBuffer) {
-      const data = fs.readFileSync(`./data/${fileName}`);
+      const data = fs.readFileSync(dataFolder);
       return data;
     }
-    const data = fs.readFileSync(`./data/${fileName}.json`);
+    const data = fs.readFileSync(dataFolder);
     return JSON.parse(data);
   } catch (err) {
     console.debug(err);
@@ -41,27 +42,27 @@ const writeToFile = (data, fileName, profile, isBuffer = false) => {
   if (profile === undefined || profile === null) {
     profile = localStorage.getItem("profile").id;
   }
-  if (!fs.existsSync(`./data/${profile}`)) {
-    fs.mkdirSync(`./data/${profile}`, { recursive: true });
+  let dataFolder = path.join(__dirname, `../data/${profile}`);
+  if (!fs.existsSync(dataFolder)) {
+    fs.mkdirSync(dataFolder, { recursive: true });
   }
-  writeFileData(data, `${profile}/${fileName}`, isBuffer
-
-  );
+  writeFileData(data, `${profile}/${fileName}`, isBuffer);
 };
 
 const writeFileData = (data, fileName, isBuffer = false) => {
   try {
-    if (!fs.existsSync(`./data`)) {
-      fs.mkdirSync(`./data`, { recursive: true });
+    let dataFolder = path.join(__dirname, `../data`);
+    if (!fs.existsSync(dataFolder)) {
+      fs.mkdirSync(dataFolder, { recursive: true });
     }
     if (isBuffer) {
-      fs.writeFileSync(`./data/${fileName}`, data, (err) => {
+      fs.writeFileSync(path.join(dataFolder, fileName), data, (err) => {
         if (err) {
           console.debug(err);
         }
       });
     } else {
-      fs.writeFileSync(`./data/${fileName}.json`, JSON.stringify(data), (err) => {
+      fs.writeFileSync(path.join(dataFolder, `${fileName}.json`), JSON.stringify(data), (err) => {
         if (err) {
           console.debug(err);
         }
@@ -73,12 +74,13 @@ const writeFileData = (data, fileName, isBuffer = false) => {
 };
 
 const deleteFile = (fileName) => {
-  if (!fs.existsSync(`./${fileName}`)) {
+  let filePath = path.join(__dirname, `../data/${fileName}`);
+  if (!fs.existsSync(filePath)) {
     console.debug(`File ${fileName} does not exist`);
     return;
   }
   try {
-    fs.unlinkSync(`./${fileName}`);
+    fs.unlinkSync(filePath);
   } catch (err) {
     console.debug(err);
   }
