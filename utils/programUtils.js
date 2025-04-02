@@ -110,6 +110,7 @@ const autoUpdate = async (force = false) => {
         spinner.start('Installing update...');
         await installUpdate(packageName);
         spinner.succeed('Update installed. Restart to apply changes.');
+        await restartProgram();
         process.exit(0);
       }
     }

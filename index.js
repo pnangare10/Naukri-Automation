@@ -235,8 +235,8 @@ const startSequence = async () => {
 
 const startProgram = async () => {
   try {
-    // await startSequence();
-    // await autoUpdate();
+    await startSequence();
+    await autoUpdate();
     const profile = await selectProfile();
     
     const loginInfo = await login(profile);
