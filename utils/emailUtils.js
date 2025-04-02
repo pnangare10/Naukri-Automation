@@ -175,7 +175,7 @@ const sendEmails = async (
         writeToFile(recipients, "hrEmails");
         count++;
       } catch (error) {
-        spinner.update(`❌ Error sending to ${recipient.email}:`, error.message);
+        console.log(`❌ Error sending to ${recipient.email}:`, error.message);
       }
     }
     spinner.succeed(`Sent ${count} emails successfully`);
