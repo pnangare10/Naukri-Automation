@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Needed for version bumping
-    
+
     # Automatic version bumping based on commit messages
     - name: Bump version
       uses: phips28/gh-action-bump-version@master
@@ -20,6 +20,8 @@ jobs:
       with:
         tag-prefix: 'v'
         skip-tag: true  # We'll create the tag in the release step
+        skip-commit: true  # Don't create commit
+        skip-push: true    # Don't push changes
         default-build-metadata: 'ci.${{ github.run_number }}'
     
     - name: Setup Node.js
