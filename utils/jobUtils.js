@@ -8,59 +8,18 @@ const {
   getProfileDetailsAPI,
   matchScoreAPI,
   getResumeAPI,
-} = require("./api");
+} = require("../api");
 
 const {
   writeToFile,
-  writeFileData,
-  filterJobs,
   getDataFromFile,
-  getFileData,
   getAnswerFromUser,
-  compressProfile,
   getEmailsIds,
 } = require("./utils");
-const { getGeminiUserConfiguration, answerQuestion } = require("./gemini");
+const { answerQuestion } = require("../gemini");
 const { localStorage } = require("./helper");
-const prompts = require("@inquirer/prompts");
-
-const login = async (profile) => {
-  if (!profile?.creds) {
-    const email = await prompts.input({ message: "Enter your email : " });
-    const password = await prompts.password({
-      message: "Enter your password : ",
-    });
-    profile = { creds: { username: email, password: password } };
-  }
-  const response = await loginAPI(profile.creds);
-  if (!response.ok) {
-    console.log("There was an error while logging in");
-    const data = await response.json();
-    const errors = [
-      ...(data?.validationErrors || []),
-      ...(data?.fieldValidationErrors || []),
-    ];
-    errors.forEach((error) => {
-      console.log(`${error.field}: ${error.message} `);
-    });
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const cookies = {};
-  const setCookie = response.headers.get("set-cookie");
-  const cookie = setCookie.split(";");
-  cookie?.forEach((cookieStr) => {
-    const [name, value] = cookieStr.split("=");
-    cookies[name] = value;
-  });
-
-  // writeToFile(cookies.nauk_at, "accessToken", profile.id);
-  console.log("Logged in successfully");
-  const loginInfo = {
-    creds: profile.creds,
-    authorization: cookies.nauk_at,
-  };
-  return loginInfo;
-};
+const spinner = require('./spinnerUtils');
+const { compressProfile } = require("./userUtils");
 
 // apply for jobs in a string array
 const applyForJobs = async (jobs, applyData) => {
@@ -92,6 +51,7 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
   const jobInfo = [];
 
   try {
+    spinner.start("Fetching job info...");
     for (let i = 0; i < jobIds.length; i += batchSize) {
       const batch = jobIds.slice(i, i + batchSize);
 
@@ -173,17 +133,18 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
       jobInfo.push(...batchResults.filter((job) => job !== null));
 
       // Print progress after each batch
-      process.stdout.write(
-        `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
-      );
+      // process.stdout.write(
+      //   `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
+      // );
+      spinner.update(`Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`);
     }
-
+    spinner.succeed("Job info fetched successfully");
     // Write the results to a file
     writeToFile(jobInfo, "searchedJobs", profile.id);
 
     return jobInfo;
   } catch (error) {
-    console.error("Unexpected error while fetching job info:", error.message);
+    spinner.fail("Unexpected error while fetching job info:", error.message);
     throw error;
   }
 };
@@ -388,7 +349,9 @@ const clearJobs = async () => {
 // main function90
 
 const findNewJobs = async (noOfPages=5, repetitions=1) => {
+  spinner.start("Searching for jobs...");
   const preferences = await localStorage.getItem("preferences");
+  debugger;
   const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
@@ -410,13 +373,14 @@ const findNewJobs = async (noOfPages=5, repetitions=1) => {
   const recommendedJobIds = await recommendedJobs;
   searchedJobIds.push(...recommendedJobIds);
   const uniqueJobIds = Array.from(new Set(searchedJobIds));
-  console.log(
+  spinner.succeed(
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
   const emailIds = getEmailsIds(jobInfo, profile.id);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
+  spinner.succeed(`Found ${filteredJobs.length} jobs.`);
   return filteredJobs;
 };
 
@@ -439,204 +403,6 @@ const getExistingJobs = async () => {
     console.log("No jobs found in file");
     return [];
   }
-};
-
-const getUserProfile = async () => {
-  const response = await getProfileDetailsAPI();
-  const userData = await response.json();
-
-  return constructUser(userData);
-};
-
-const getPreferences = async (user) => {
-  let preferences = await getDataFromFile("preferences", user.id);
-  let doConfiguration = preferences ? false : true;
-  if (preferences)
-    doConfiguration = await prompts.select({
-      message: "Do you want to configure your preferences ?",
-      choices: [
-        {
-          name: "No",
-          value: false,
-          description: "Use default preferences",
-        },
-        {
-          name: "Yes",
-          value: true,
-          description: "Configure your preferences",
-        },
-      ],
-    });
-  if (!preferences) {
-    preferences = {};
-  }
-  let matchStrategy = "naukriMatching"; //doConfiguration ? null : preferences.matchStrategy;
-  if (!matchStrategy) {
-    matchStrategy = await prompts.select({
-      message: "Select a strategy to match the jobs",
-      choices: [
-        {
-          name: "Naukri Matching",
-          value: "naukriMatching",
-          description: "Use Naukri Matching strategy to match the jobs",
-        },
-        {
-          name: "Keywords Matching",
-          value: "keywords",
-          description:
-            "Match the jobs with keywords provided by you and title of the job",
-        },
-        {
-          name: "AI Matching",
-          value: "ai",
-          description: "Use Gen AI model to match the jobs",
-        },
-        {
-          name: "Manual Matching",
-          value: "manual",
-          description: "Manually match the jobs with your confirmation",
-        },
-      ],
-    });
-    preferences.matchStrategy = matchStrategy;
-  }
-  let enableGenAi = doConfiguration ? null : preferences.enableGenAi;
-  if (enableGenAi === null || enableGenAi === undefined) {
-    let enableGenAi = await prompts.select({
-      message: "Would you like to enable Gen Ai based question answering ?",
-      choices: [
-        {
-          name: "Yes",
-          value: true,
-          description:
-            "Use gen ai model to generate answers for questions asked in job application.",
-        },
-        {
-          name: "No",
-          value: false,
-          description:
-            "Skip gen ai setup. This will skip the jobs which require question answering.",
-        },
-      ],
-    });
-    preferences.enableGenAi = false;
-    if (enableGenAi || matchStrategy === "ai") {
-      let res = "gemini";
-      // let res = await prompts.select({
-      //   message: "Please select gen ai model to use",
-      //   choices: [
-      //     { name: "Google Gemini Model", value: "gemini" },
-      //     { name: "ChatGPT", value: "chatgpt" },
-      //   ],
-      // });
-      // if (res !== "gemini") {
-      //   console.log(
-      //     "There is only gemini model implementation available currently, selecting gemini as default"
-      //   );
-      //   res = "gemini";
-      // }
-      if (res === "gemini") {
-        const { config, enableGenAi } = await getGeminiUserConfiguration(
-          preferences
-        );
-        preferences.genAiConfig = config;
-        preferences.enableGenAi = enableGenAi;
-      }
-      preferences.genAiModel = res;
-      preferences.matchStrategy = matchStrategy;
-    } else {
-      const enableManualAnswering = await prompts.select({
-        message: "Would you like to manually answer the questions?",
-        choices: [
-          {
-            name: "No",
-            value: false,
-            description:
-              "Jobs which require question answering will be skipped.",
-          },
-          {
-            name: "Yes",
-            value: true,
-            description:
-              "You will have to enter the answers manually. (Not recommended, defeats the purpose of automation :) )",
-          },
-        ],
-        description:
-          "Selecting no will result skipping the jobs which require question answering.",
-      });
-      preferences.enableManualAnswering = enableManualAnswering;
-    }
-  }
-
-  if (!preferences?.desiredRole)
-    preferences.desiredRole = user.profile.desiredRole;
-  const desiredRoles = preferences.desiredRole
-    ? preferences.desiredRole.join(", ")
-    : "None";
-
-  if (!preferences?.keywords) {
-    preferences.keywords = user.profile.keySkills
-      .split(",")
-      .map((skill) => skill.trim());
-  }
-  const keywords = preferences.keywords
-    ? preferences.keywords.join(", ")
-    : "None";
-
-  if (doConfiguration || desiredRoles === "None" || keywords === "None") {
-    let res = await prompts.input({
-      message: `Here are current desired roles:
-    ${desiredRoles}
-    Please enter more desired roles in comma separated format (for example: "Software Engineer, Developer, Analyst")
-    Hit enter to skip\n`,
-    });
-    // ;
-    if (res !== "") {
-      res.split(",").forEach((role) => {
-        preferences.desiredRole.push(role.trim());
-      });
-    }
-
-    res = await prompts.input({
-      message: `Current keywords to match the jobs:
-    ${keywords}
-    Please enter more keywords to match the jobs in comma separated format (Java, React, HTML, CSS, etc.)
-    Hit enter to skip
-    Note: Include variation of the keywords as well to match correctly.(for example: use reactjs instead of react.js)\n`,
-    });
-
-    if (res !== "") {
-      res.split(",").forEach((keyword) => {
-        preferences.keywords.push(keyword.trim().toLowerCase());
-      });
-    }
-  }
-  if (doConfiguration || !preferences.noOfPages || !preferences.dailyQuota) {
-    // let res = await prompts.number({
-    //   message: "Enter the number of pages to search for jobs",
-    //   default: 5,
-    //   min: 1,
-    //   max: 10,
-    // });
-    preferences.noOfPages = 5;
-    res = await prompts.number({
-      message: "Enter the number of jobs to apply for on daily basis",
-      default: 40,
-      min: 1,
-      max: 50,
-      description:
-        "This is the number of jobs you want to apply for on daily basis, Maximum quota is 50",
-    });
-    preferences.dailyQuota = res;
-  }
-  return preferences;
-};
-
-const getLinkedInProfile = async () => {
-  const linkedInProfile = await prompts.input({
-    message: "Please enter your LinkedIn profile URL.",
-  });
-  return linkedInProfile;
 };
 
 const getResume = async () => {
@@ -662,110 +428,45 @@ const getResume = async () => {
   }
 };
 
-const constructUser = async (apiData) => {
-  ;
-  const user = {
-    id: apiData.profile[0].name,
-    userDetails: {
-      email: apiData.user.email,
-      mobile: apiData.user.mobile,
-      name: apiData.profile[0].name,
-    },
-    skills: apiData.itskills.map((skill) => ({
-      skillName: skill.skill,
-      experienceYears: skill.experienceTime.year,
-      experienceMonths: skill.experienceTime.month,
-    })),
-    education: apiData.educations.map((edu) => ({
-      degree: edu.course.value,
-      specialization: edu.specialisation.value,
-      institute: edu.institute,
-      marks: edu.marks,
-      startYear: edu.yearOfStart,
-      completionYear: edu.yearOfCompletion,
-    })),
-    employmentHistory: apiData.employments.map((emp) => ({
-      designation: emp.designation,
-      organization: emp.organization,
-      startDate: emp.startDate,
-      endDate: emp.endDate || "Present",
-      jobDescription: emp.jobDescription,
-    })),
-    schools: apiData.schools.map((school) => ({
-      board: school.schoolBoard.value,
-      completionYear: school.schoolCompletionYear,
-      percentage: school.schoolPercentage.value,
-      educationType: school.educationType.value,
-    })),
-    languages: apiData.languages.map((lang) => ({
-      language: lang.lang,
-      proficiency: lang.proficiency.value,
-      abilities: lang.ability,
-    })),
-    profile: {
-      profileId: apiData.profileAdditional.profileId,
-      keySkills: apiData.profile[0].keySkills,
-      birthDate: apiData.profile[0].birthDate,
-      gender: apiData.profile[0].gender == "M" ? "Male" : "Female",
-      maritalStatus: apiData.profile[0].maritalStatus.value,
-      pinCode: apiData.profile[0].pincode,
-      desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
-      locationPreference: apiData.profile[0].locationPrefId.map(
-        (loc) => loc.value
-      ),
-      expectedCtc: Number(apiData.profile[0].absoluteExpectedCtc),
-      disability:
-        apiData.profile[0].disability.isDisabled == "N" ? "No" : "Yes",
-      noticePeriod: apiData.profile[0]?.noticePeriod?.value,
-      noticeEndDate: apiData.noticePeriod[0]?.noticeEndDate,
-      currentCtc: Number(apiData.profile[0].absoluteCtc),
-      totalExperience: {
-        year: apiData.profile[0].experience.year,
-        month: apiData.profile[0].experience.month,
-      },
-      desiredRole: apiData.profile[0].desiredRole.map((role) => role.value),
-      currentLocation: ` ${apiData.profile[0].city.value}, ${apiData.profile[0].country.value}`,
-    },
-    onlineProfile: apiData.onlineProfile.map((profile) => ({
-      type: profile.profile,
-      url: profile.url,
-    })),
-    workSamples: apiData.workSample
-  };
-  if (!user.onlineProfile.find((profile) => profile.type === "LinkedIn")) {
-    const linkedInProfile = await getLinkedInProfile();
-    user.onlineProfile.push({
-      type: "LinkedIn",
-      url: linkedInProfile,
-    });
-  }
-  ;
-  const preferences = await getPreferences(user);
-  return { user, preferences };
-};
-
-const manageProfiles = async (profile, loginInfo) => {
-  const profiles = await getFileData("profiles");
-  const data = {
-    id: profile.id,
-    creds: loginInfo.creds,
-  };
-  if (!profiles) {
-    writeFileData([data], "profiles");
-    return [data];
-  }
-  const profileIndex = profiles.findIndex((p) => p.id === profile.id);
-
-  if (profileIndex !== -1) {
-    profiles[profileIndex] = { ...profiles[profileIndex], ...data };
-  } else {
-    profiles.push(data);
-  }
-  return profiles;
+const filterJobs = (jobInfo) => {
+  const user = localStorage.getItem("profile");
+  const preferredSalary = user.profile.expectedCtc ?? 0;
+  const maxTime = 30;
+  const maxApplyCount = 10000;
+  const experience = user.profile.totalExperience.year + 2 ?? 100;
+  const videoProfile = false;
+  const vacany = 1;
+  const filteredJobs = jobInfo
+    .filter((jobDetails) => {
+      const createdDays = jobDetails.createdDate
+        ? (new Date() - new Date(jobDetails.createdDate)) /
+          (1000 * 60 * 60 * 24)
+        : 0;
+      return (
+        jobDetails.maximumSalary >= preferredSalary &&
+        createdDays <= maxTime &&
+        jobDetails.applyCount <= maxApplyCount &&
+        jobDetails.minimumExperience <= experience &&
+        (jobDetails.videoProfilePreferred === undefined ||
+          jobDetails.videoProfilePreferred === videoProfile) &&
+        jobDetails.applyRedirectUrl === undefined &&
+        (jobDetails.vacany === undefined || jobDetails.vacany >= vacany)
+      );
+    })
+    .map((jobDetails) => ({
+      jobId: jobDetails.jobId,
+      jobTitle: jobDetails.title,
+      companyName: jobDetails.companyName,
+      description: jobDetails.description,
+      minimumSalary: jobDetails.minimumSalary,
+      maximumSalary: jobDetails.maximumSalary,
+      matchScore: jobDetails.matchScore,
+    }))
+    .sort((a, b) => b.maximumSalary - a.maximumSalary);
+  return filteredJobs;
 };
 
 module.exports = {
-  login,
   applyForJobs,
   getJobInfo,
   searchJobs,
@@ -775,8 +476,6 @@ module.exports = {
   clearJobs,
   findNewJobs,
   getExistingJobs,
-  getUserProfile,
-  constructUser,
-  manageProfiles,
   getResume,
+  filterJobs,
 };

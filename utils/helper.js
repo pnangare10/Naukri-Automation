@@ -1,5 +1,3 @@
-const fs = require("fs");
-const { exec, spawn, spawnSync } = require("child_process");
 
 const memoryStorage = {};
 
@@ -29,43 +27,17 @@ const getFormattedDate = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-const openUrl = async (url) => {
-  // Open the folder in the file explorer
-  const command =
-    process.platform === "win32"
-      ? `start "" "${url}"`
-      : process.platform === "darwin"
-      ? `open "${folderPath}"`
-      : `xdg-open "${url}"`;
-  exec(command, (error) => {
-    if (error) {
-      console.error("Error opening folder:", error.message);
-    }
-  });
+// Split an array into chunks of a given size
+const chunkArray = (array, size) => {
+  return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
+    array.slice(index * size, index * size + size)
+  );
 };
-
-const openFile = (filePath, callback) => {
-  const command = process.platform === "win32" ? "nano" : "nano";
-  spawnSync(command, [filePath], { stdio: "inherit" }); // Waits until nano is closed
-};
-
-const openFolder = (folderPath) => {
-  fs.access(folderPath, fs.constants.F_OK, (err) => {
-    if (err) {
-      console.error("Folder does not exist:", folderPath);
-      return;
-    }
-    openUrl(folderPath);
-  });
-};
-
 // openFile("file.html")
 // openFolder("data")
 
 module.exports = {
   getFormattedDate,
   localStorage,
-  openFolder,
-  openUrl,
-  openFile,
+  chunkArray,
 };

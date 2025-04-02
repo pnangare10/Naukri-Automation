@@ -1,0 +1,40 @@
+name: Publish and Package
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+
+jobs:
+  publish-and-package:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Use your preferred Node.js version
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+      
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Publish to npm
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+    - name: Package application
+      run: |  
+        mkdir -p assets  # Ensure assets directory exists
+        npm run pkg
+      
+    - name: Upload executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: executable
+        path: assets/*.exe # Adjust path to match your output

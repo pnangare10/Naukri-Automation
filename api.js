@@ -1,7 +1,5 @@
-const { getFormattedDate, localStorage } = require("./helper");
-const fs = require("fs");
-const path = require("path");
-const { writeToFile } = require("./ioUtils");
+const { getFormattedDate, localStorage } = require("./utils/helper");
+
 const commonHeaders = {
   accept: "application/json",
   "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -109,14 +107,6 @@ const getProfileDetailsAPI = async () =>
     }
   );
 
-const matchScoreAPI1 = async (jobId) => {
-  fetch(`https://www.naukri.com/jobapi/v3/job/${jobId}/matchscore`, {
-    headers: getHeaders(true, true),
-    body: null,
-    method: "GET",
-  });
-};
-
 const matchScoreAPI = async (jobId) =>
   fetch(`https://www.naukri.com/jobapi/v3/job/${jobId}/matchscore`, {
     headers: getHeaders(true, false),
@@ -124,15 +114,14 @@ const matchScoreAPI = async (jobId) =>
     method: "GET",
   });
 
-const incrementCounterAPI = async () => {
-  fetch("https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter", {
+const incrementCounterAPI = async (useCase = 'newJobApplied') => 
+  fetch(`https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter?useCase=${useCase}`, {
     headers: {
       "Content-Type": "application/json",
     },
     body: null,
     method: "GET",
   });
-};
 
 const getResumeAPI = async (profileId) => 
   fetch(
@@ -141,6 +130,15 @@ const getResumeAPI = async (profileId) =>
       ...getHeaders(true, false),
       "content-type": "application/pdf",
     },
+    method: "GET",
+  });
+
+const getConstantsAPI = async (type) =>
+  fetch(`https://getdata-856678010611.us-central1.run.app?type=${type}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: null,
     method: "GET",
   });
 
@@ -155,4 +153,5 @@ module.exports = {
   incrementCounterAPI,
   matchScoreAPI,
   getResumeAPI,
+  getConstantsAPI,
 };

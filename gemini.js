@@ -7,14 +7,18 @@ const { GoogleAuth } = require("google-auth-library");
 const prompts = require("@inquirer/prompts");
 const fs = require("fs");
 const path = require("path");
-const { localStorage, openFolder, openUrl } = require("./helper");
-const aiPrompts = require("./prompts");
-let generativeModel = null; // Global variable to store the instance
+const { localStorage } = require("./utils/helper");
+const { openFolder, openUrl } = require("./utils/cmdUtils");
+const aiPrompts = require("./utils/genAiPrompts");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { documentQA, callFunc, searchSimilarChunks } = require("./vectorSearch");
+const { searchSimilarChunks } = require("./vectorSearch");
 const { processDocumentEmbeddings } = require("./embeddings");
-const { getDataFromFile } = require("./ioUtils");
+const { getDataFromFile } = require("./utils/ioUtils");
+const { textModelMenu, keyFileMenu, getConfirmation } = require("./utils/prompts");
+const spinner = require('./utils/spinnerUtils');
 
+
+let generativeModel = null; 
 let questionEmbeddings = null;
 /**
  * Captures user configuration through CLI prompts.
@@ -26,16 +30,7 @@ const getGeminiUserConfiguration = async (preferences) => {
     const genAiConfig = preferences.genAiConfig || {};
 
     //Get the authenticaton type for gemini
-    // const authType = await prompts.select({
-    //   type: "select",
-    //   name: "value",
-    //   message: "Select your authentication type:",
-    //   choices: [
-    //     { name: "API Key (Recommended)", value: "apiKey" },
-    //     { name: "Service Account", value: "serviceAccount" },
-    //   ],
-    //   default: genAiConfig.authType || "apiKey",
-    // });
+    // const authType = await selectAuthTypeMenu();
     let authType = "apiKey";
     if (authType === "serviceAccount") {
       // Ensure the apikeys folder exists
@@ -65,12 +60,7 @@ const getGeminiUserConfiguration = async (preferences) => {
         openUrl(
           `https://console.cloud.google.com/iam-admin/serviceaccounts/create`
         );
-        let confirmPrompt = await prompts.confirm({
-          type: "confirm",
-          name: "value",
-          message: "Were you able to download the api key file?",
-          default: true,
-        });
+        let confirmPrompt = await getConfirmation("Were you able to download the api key file?");
 
         console.log("7. Paste api key file in apikeys folder");
         if (!fs.existsSync(apikeysFolderPath)) {
@@ -78,34 +68,19 @@ const getGeminiUserConfiguration = async (preferences) => {
           fs.mkdirSync(apikeysFolderPath);
         }
         await openFolder(apikeysFolderPath);
-        confirmPrompt = await prompts.confirm({
-          type: "confirm",
-          name: "value",
-          message: "Have you added the key file(s) to the folder?",
-          default: true,
-        });
+        confirmPrompt = await getConfirmation("Have you added the key file(s) to the folder?");
 
         console.log(`8. Enable Vertex AI API from API's and Services Section.`);
         openUrl(
           `https://console.cloud.google.com/apis/library/aiplatform.googleapis.com`
         );
-        confirmPrompt = await prompts.confirm({
-          type: "confirm",
-          name: "value",
-          message: "Were you able to enable the Vertext AI API?",
-          default: true,
-        });
+        confirmPrompt = await getConfirmation("Were you able to enable the Vertext AI API?");
 
         console.log(`9. Enable Gemini API from API's and Services Section.`);
         openUrl(
           `https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com`
         );
-        confirmPrompt = await prompts.confirm({
-          type: "confirm",
-          name: "value",
-          message: "Were you able to enable the Gemini API?",
-          default: true,
-        });
+        confirmPrompt = await getConfirmation("Were you able to enable the Gemini API?");
 
         // Refresh the list of files after confirmation
         files = fs
@@ -113,12 +88,7 @@ const getGeminiUserConfiguration = async (preferences) => {
           .filter((file) => file.endsWith(".json"));
       }
 
-      const keyFilePrompt = await prompts.select({
-        type: "select",
-        name: "value",
-        message: "Select your Google Cloud service account key file:",
-        choices: files.map((file) => ({ name: file, value: file })),
-      });
+      const keyFilePrompt = await keyFileMenu(files);
 
       const keyFile = path.join(apikeysFolderPath, keyFilePrompt);
 
@@ -149,19 +119,12 @@ const getGeminiUserConfiguration = async (preferences) => {
       let apiKey = genAiConfig.apiKey;
       let choice = "yes";
       if (genAiConfig.apiKey) {
-        choice = await prompts.select({
-          message: `Do you want to use the existing api key? (Current api key: ${genAiConfig.apiKey})`,
-          default: "yes",
-          choices: [
-            { name: "Yes", value: "yes" },
-            { name: "No", value: "no" },
-          ],
-        });
-        if (choice === "yes") {
+        choice = await getConfirmation(`Do you want to use the existing api key? (Current api key: ${genAiConfig.apiKey})`);
+        if (choice) {
           apiKey = genAiConfig.apiKey;
         }
       }
-      if (!genAiConfig.apiKey || choice === "no") {
+      if (!genAiConfig.apiKey || choice === false) {
         console.log(
           "Please get the api key from https://aistudio.google.com/app/u/3/apikey and press enter to continue"
         );
@@ -191,40 +154,18 @@ const getGeminiUserConfiguration = async (preferences) => {
       };
     }
 
-    const textModel = await prompts.select({
-      name: "value",
-      message: "Enter the text model (e.g., gemini-2.0-flash-001):",
-      default: genAiConfig.textModel || "gemini-2.0-flash-001",
-      choices: [
-        {
-          name: "gemini-2.0-flash-001 (Recommended)",
-          value: "gemini-2.0-flash-001",
-        },
-        { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
-        { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
-        { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
-        { name: "gemini-1.5-pro-001", value: "gemini-1.5-pro-001" },
-        { name: "gemini-1.0-pro-002", value: "gemini-1.0-pro-002" },
-        { name: "gemini-1.0-pro-001", value: "gemini-1.0-pro-001" },
-      ],
-    });
+    const textModel = await textModelMenu(genAiConfig.textModel);
 
     preferences.genAiConfig.textModel = textModel;
     try {
-      console.log("Pinging gemini model ...");
       await initializeGeminiModel(preferences.genAiConfig);
       await pingModel();
       preferences.enableGenAi = true;
     } catch (e) {
-      let choice = await prompts.select({
-        message:
-          "Would you like to do configuration again or disable Gen AI application?",
-        choices: [
-          { name: "Do configuration", value: "configure" },
-          { name: "Disable Gen AI", value: "disable" },
-        ],
-      });
-      if (choice === "configure") await getGeminiUserConfiguration(preferences);
+      let choice = await getConfirmation(
+        "Would you like to do configuration again? (Select no to disable Gen AI application)"
+      );
+      if (choice) await getGeminiUserConfiguration(preferences);
       else preferences.enableGenAi = false;
     }
 
@@ -268,7 +209,7 @@ const initializeGeminiModel = async (config) => {
   } else {
     const genAI = new GoogleGenerativeAI(config.apiKey);
     generativeModel = genAI.getGenerativeModel({ model: config.textModel });
-    console.log("Generative model initialized successfully.");
+    spinner.update("Model initialized successfully");
     return generativeModel;
   }
 };
@@ -299,10 +240,12 @@ const getGeminiModel = async () => {
 };
 
 const getModelResponse = async (prompt) => {
-  const model = await getGeminiModel();
-  if (model == null) return null;
-  const preferences = localStorage.getItem("preferences");
-  const genAiConfig = preferences.genAiConfig;
+  try{
+    spinner.start("Getting model response...");
+    const model = await getGeminiModel();
+    if (model == null) return null;
+    const preferences = localStorage.getItem("preferences");
+    const genAiConfig = preferences.genAiConfig;
 
   if (!genAiConfig) {
     throw new Error("AI configuration not found in preferences.");
@@ -324,14 +267,23 @@ const getModelResponse = async (prompt) => {
 
   if (!answer) {
     throw new Error("No answer generated by the model.");
+    }
+    spinner.stop();
+    return answer;
+  } catch (e) {
+    debugger;
+    spinner.fail(`this is the error ${e.message}\n\n\n`);
+    throw e;
+  } finally {
+    spinner.stop();
   }
-  return answer;
 };
 /**
  * Example function to check job suitability.
  */
 const checkSuitability = async (job, profile) => {
   try {
+    spinner.start();
     const prompt = aiPrompts.jobSuitabilityPrompt(
       profile.skills,
       job.description
@@ -358,11 +310,14 @@ const checkSuitability = async (job, profile) => {
     console.log("Generated content is -> ");
     console.log(response.candidates[0].content.parts[0].text);
     throw e;
+  } finally {
+    spinner.stop();
   }
 };
 
 const answerQuestion = async (questions, profileDetails) => {
   try {
+    spinner.start("Generating answer...");
     if (questionEmbeddings == null) {
       const questionsData = await getDataFromFile("questions");
       if (questionsData && questionsData.length !== 0) {
@@ -400,21 +355,22 @@ const answerQuestion = async (questions, profileDetails) => {
   } catch (e) {
     console.error("Error while generating Assistant response:", e.message);
     return null;
+  } finally {
+    spinner.stop();
   }
 };
 
 const pingModel = async (prompt) => {
   try {
-    let response;
+    spinner.start("Pinging model...");
     const model = await getGeminiModel();
     if (model == null) return null;
     const result = await model.generateContent(prompt ?? "Hello How are you");
-    console.log(result.response.text());
+    spinner.succeed("Model pinged successfully");
   } catch (e) {
-    console.log("Error while generating Assistant response: ");
-    console.log(e.message);
+    spinner.fail(`Error while pinging model: ${e.message}`);
     throw e;
-  }
+  } 
 };
 
 module.exports = {

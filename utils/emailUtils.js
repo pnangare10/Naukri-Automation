@@ -8,57 +8,27 @@ const {
 } = require("./ioUtils");
 const nodemailer = require("nodemailer");
 const prompts = require("@inquirer/prompts");
-const { openUrl, localStorage, openFile } = require("./helper");
+const { localStorage} = require("./helper");
+const { openUrl, openFile } = require("./cmdUtils");
 const path = require("path");
 const { getResume, findNewJobs } = require("./jobUtils");
-const { getCsvFile } = require("./utils");
+const { getCsvFile } = require("./ioUtils");
+const { emailMenu, subEmailMenu, getConfirmation, selectEmails, passwordPrompt } = require("./prompts");
+const { emailTemplate } = require("./emailTemplate");
+const spinner = require("./spinnerUtils");
 
 const getEmails = async () => {
-  const emails = await getDataFromFile("hrEmails", "Pranesh Nangare");
+  const emails = await getDataFromFile("hrEmails");
   if (!emails) return null;
   const newEmails = emails?.filter((email) => !email.mailSent);
   // the emails field is an array of emails in each object, i want to add a new object for that array
   if (newEmails.length > 0) {
     return newEmails;
   }
-  return emails;
+  return null;
 };
 
 // Email template with placeholders
-const emailTemplate = (
-  name,
-  contact,
-  linkedInProfile,
-  totalExperience,
-  skills,
-  workSamples
-) =>
-  `<p>Dear Recruiter,</p>
-<p>I hope you're doing well!</p>
-<p>I came across the {{position}} opening at {{company}} and wanted to express my interest. 
-<br>I have <b>${totalExperience.year} years and 
-${totalExperience.month} months of experience in ${skills
-    .slice(0, 2)
-    .map((skill) => skill.skillName)
-    .join(", ")}</b> 
-and I believe I can contribute effectively to your team.</p>
-<p>Attached is my resume for your reference. I would love the opportunity to discuss how 
-my skills align with your needs.</p>
-${
-  workSamples && workSamples.length > 0
-    ? `<p>Here are some of my worksamples:</p>
-  ${workSamples
-    ?.slice(0, 2)
-    .map((worksample) => `<b>${worksample.title}</b><br>${worksample.url}`)
-    .join("<br>")}</p>`
-    : ""
-}
-Looking forward to your response.</p>
-<p>Best regards,<br>
-${name}<br>
-Contact: ${contact}<br>
-${linkedInProfile ? `LinkedIn Profile: ${linkedInProfile}` : ""}
-`;
 
 const getMailPassword = async () => {
   const preferences = await localStorage.getItem("preferences");
@@ -73,12 +43,9 @@ const getMailPassword = async () => {
   console.log("3. Click on 'Create' button");
   console.log("4. Copy the generated password");
   console.log("5. Paste the password in the prompt");
-  await prompts.confirm({
-    message: "Hit enter to open the browser",
-    default: true,
-  });
+  await getConfirmation("Hit enter to open the browser");
   await openUrl("https://myaccount.google.com/apppasswords");
-  const password = await prompts.password({ message: "Enter your password" });
+  const password = await passwordPrompt("Enter your password");
   preferences.mailPassword = password;
   await localStorage.setItem("preferences", preferences);
   writeToFile(preferences, "preferences");
@@ -92,7 +59,7 @@ const getResumePath = async () => {
   if (!filename) {
     return null;
   }
-  return path.join(__dirname, `data/${profile.id}/${filename}`);
+  return path.join(__dirname, `..`, `data/${profile.id}/${filename}`);
 };
 
 const resetEmailTemplate = async () => {
@@ -122,23 +89,17 @@ const editEmailTemplate = async () => {
   let existingTemplate = existingTemplateBuffer
     ? existingTemplateBuffer.toString()
     : null;
-  const res = await prompts.select({
-    message: "Please select an option",
-    default: "skip",
-    choices: [
-      { title: "Skip", value: "skip" },
-      { title: "Edit email template", value: "edit" },
-      { title: "View email template", value: "view" },
-      { title: "Reset email template", value: "reset" },
-    ],
-  });
+  const res = await emailMenu();
+  if (res === "previous") return null;
+  if (res === "exit") throw new Error("ExitPromptError");
   if (!existingTemplate || res === "reset") {
     existingTemplate = await resetEmailTemplate();
     if (res === "reset") return existingTemplate;
   }
   if (res === "view") {
     console.log(existingTemplate);
-    return existingTemplate;
+    await getConfirmation("Press enter to continue", true);
+    return editEmailTemplate();
   }
   if (res === "skip") return existingTemplate;
   if (res === "edit") {
@@ -152,15 +113,17 @@ const editEmailTemplate = async () => {
     Important Note: Do not change the file name`);
     const templatePath = path.join(
       __dirname,
-      `data/${profile.id}/emailTemplate.html`
+      `../data/${profile.id}/emailTemplate.html`
     );
     openFile(templatePath);
     const newTemplate = (
       await getDataFromFile("emailTemplate.html", null, true)
     )?.toString();
-    if (newTemplate) return newTemplate;
+    console.log(newTemplate);
+    if (newTemplate) return editEmailTemplate();
+    console.log("No template found, resetting to default");
     const defaultTemplate = await resetEmailTemplate();
-    return defaultTemplate;
+    return editEmailTemplate();
   }
 };
 
@@ -170,8 +133,9 @@ const sendEmails = async (
   emailTemplate,
   resumePath
 ) => {
+  try{
+  spinner.start("Sending emails...");
   const profile = await localStorage.getItem("profile");
-  // Create Nodemailer transporter
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -181,7 +145,6 @@ const sendEmails = async (
   });
 
   for (const recipient of recipients) {
-    if (recipient.mailSent) continue;
     emailTemplate = emailTemplate
       .replace("{{position}}", recipient.title)
       .replace("{{company}}", recipient.company);
@@ -196,7 +159,7 @@ const sendEmails = async (
         },
       ],
     };
-
+    let count = 0;
     for (let i = 0; i < recipient.email.length; i++) {
       const email = recipient.email[i];
       try {
@@ -206,25 +169,27 @@ const sendEmails = async (
         }
         mailOptions.to = email;
         const info = await transporter.sendMail(mailOptions);
-        process.stdout.write(`Sent ${i} emails out of ${recipients.length} \r`);
+        spinner.update(`Sent ${i} emails out of ${recipients.length}`);
         recipient.mailSent = true;
+        incrementCounterAPI("emailSent");
         writeToFile(recipients, "hrEmails");
+        count++;
       } catch (error) {
-        console.error(`❌ Error sending to ${recipient.email}:`, error.message);
+        spinner.update(`❌ Error sending to ${recipient.email}:`, error.message);
       }
     }
+    spinner.succeed(`Sent ${count} emails successfully`);
+  }
+  } catch (error) {
+    spinner.fail(error.message);
+  } finally {
+
+    spinner.stop();
   }
 };
 
-const showEmailsMenu = async () => {
-  const res = await prompts.select({
-    message: "Please select a option: ",
-    choices: [
-      {name: "Clear existing emails", value: "clear"},
-      {name: "Export emails", value: "export"},
-      {name: "Send emails", value: "send"},
-    ]
-  })
+const handleEmailsMenu = async () => {
+  const res = await subEmailMenu();
   switch(res) {
     case "clear" :
       await clearEmails();
@@ -232,46 +197,55 @@ const showEmailsMenu = async () => {
     case "export": 
       await exportEmails();
       break;
-    case "send": 
+    case "send-all": 
       await setupEmails();
       break;
+    case "send-selected":
+      await setupEmails(true);
+      break;
+    case "previous":
+      return null;
+    case "exit":
+      throw new Error("ExitPromptError");
     default: 
       console.log("Please select a correct option");
   }
-}
+};
 // Function to send emails
-const setupEmails = async () => {
+const setupEmails = async (sendSelected = false) => {
   const profile = await localStorage.getItem("profile");
 
   let recipients = await getEmails();
+ 
   if (!recipients) {
     console.log(
       "No emails to send. Please search for new jobs to collect emails."
     );
-    const res = await prompts.select({
-      message: "Do you want to search for new emails?",
-      choices: [
-        { name: "Yes", value: "yes" },
-        { name: "No", value: "no" },
-      ],
-    });
+    const res = await getConfirmation("Do you want to search for new emails?");
     if (res) {
+      spinner.start("Searching for new emails...");
       deleteFile(`data/${profile.id}/hrEmails.json`);
       await findNewJobs();
       let count = 0;
-      process.stdout.write("Waiting for emails to be created ");
+      spinner.update("Waiting for emails to be created ");
       while (!checkFileExists(`data/${profile.id}/hrEmails.json`)) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        process.stdout.write(". ");
         count++;
         if (count > 10) {
-          console.log("Timeout waiting for hrEmails file");
+          spinner.fail("Timeout waiting for hrEmails file");
           return;
         }
       }
       recipients = await getEmails();
-      console.log(`Found ${recipients.length} new emails`);
+      if (!recipients) {
+        spinner.fail("No emails found");
+        return;
+      }
+      spinner.succeed(`Found ${recipients.length} new emails`);
     } else return;
+  }
+  if (sendSelected) {
+    recipients = await selectEmails(recipients);
   }
   let mailPassword = await getMailPassword();
   let resumePath = await getResumePath();
@@ -280,50 +254,49 @@ const setupEmails = async () => {
     return;
   }
   if (!resumePath) {
-    console.log("Resume not found in your Naukri profile");
-    console.log("Please upload your resume to proceed");
-    const res = await prompts.confirm({
-      message: "Do you want to upload now?",
-      default: true,
-    });
+    console.log(`Resume not found in your Naukri profile\nPlease upload your resume to proceed`);
+    const res = await getConfirmation("Do you want to upload now?");
     if (res) {
       await openUrl("https://www.naukri.com/mnjuser/profile");
-      const response = await prompts.confirm({
-        message: "Press enter after uploading the resume",
-        default: true,
-      });
+      const response = await getConfirmation("Press enter after uploading the resume");
       if (!response) {
-        console.log("Please upload your resume and try again");
+        console.log(`Please upload your resume and try again`);
         return;
       } else {
         resumePath = await getResumePath();
       }
     } else {
-      console.log("Please upload your resume and try again");
+      console.log(`Please upload your resume and try again`);
       return;
     }
   }
   let emailTemplate = await editEmailTemplate();
-  console.log("Sending emails...");
+  if (!emailTemplate) return;
   await sendEmails(recipients, mailPassword, emailTemplate, resumePath);
 };
 
 const clearEmails = async () => {
-  const profile = await localStorage.getItem("profile");
-  deleteFile(`data/${profile.id}/hrEmails.json`);
-  deleteFile(`data/${profile.id}/hrEmails.csv`);
-  console.log("Emails cleared successfully");
+  try{
+    spinner.start("Clearing emails...");
+    const profile = await localStorage.getItem("profile");
+    deleteFile(`data/${profile.id}/hrEmails.json`);
+    deleteFile(`data/${profile.id}/hrEmails.csv`);
+    spinner.succeed(`Emails cleared successfully`);
+  } catch (error) {
+    spinner.fail(error.message);
+  } finally {
+    spinner.stop();
+  }
 };
 
 const exportEmails = async () => {
   const emails = await getDataFromFile("hrEmails");
   if (!emails) {
-    console.log("No emails to export");
+    console.log(`No emails to export`);
     return;
   }
   const profile = await localStorage.getItem("profile");
   await getCsvFile(emails, `${profile.id}-HR-Emails.csv`);
-  console.log("Emails exported successfully to the Downloads folder!");
 };
 
 module.exports = {
@@ -331,5 +304,5 @@ module.exports = {
   setupEmails,
   clearEmails,
   exportEmails,
-  showEmailsMenu,
-}
+  handleEmailsMenu,
+};
