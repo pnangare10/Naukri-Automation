@@ -23,6 +23,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    # Explicitly install pkg if not in package.json
+    - name: Install pkg
+      run: npm install pkg
+      
     - name: Publish to npm
       run: npm publish --access public
       env:
@@ -30,11 +34,11 @@ jobs:
       
     - name: Package application
       run: |  
-        mkdir -p assets  # Ensure assets directory exists
-        npm run pkg
+        mkdir -p assets
+        npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
       
     - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
         name: executable
-        path: assets/*.exe # Adjust path to match your output
+        path: assets/naukri-ninja.exe
