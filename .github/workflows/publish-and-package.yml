@@ -3,27 +3,27 @@ name: Publish and Package
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'src/**'
+
+# Required permissions for release creation and npm publish
+permissions:
+  contents: write
+  packages: write
+  actions: read
 
 jobs:
   publish-and-package:
     runs-on: ubuntu-latest
     
     steps:
+    # Checkout code
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Needed for version bumping
-
-    # Automatic version bumping based on commit messages
-    - name: Bump version
-      uses: phips28/gh-action-bump-version@master
-      id: bump-version
-      with:
-        tag-prefix: 'v'
-        skip-tag: true  # We'll create the tag in the release step
-        skip-commit: true  # Don't create commit
-        skip-push: true    # Don't push changes
-        default-build-metadata: 'ci.${{ github.run_number }}'
+        fetch-depth: 0  # Required for full git history
     
+    # Setup Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -31,43 +31,55 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
       
+    # Install dependencies
     - name: Install dependencies
       run: npm ci
       
+    # Get version from package.json
+    - name: Get package version
+      id: get-version
+      run: |
+        echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+    # Publish to npm
     - name: Publish to npm
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
+    # Install pkg for executable creation
     - name: Install pkg
       run: npm install pkg
       
+    # Create executable
     - name: Package application
       run: |  
         mkdir -p assets
         npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
       
-    # Create GitHub release with the executable
+    # Create GitHub release
     - name: Create Release
       uses: softprops/action-gh-release@v1
-      if: success()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.bump-version.outputs.new_version }}
-        name: "Release v${{ steps.bump-version.outputs.new_version }}"
+        tag_name: v${{ steps.get-version.outputs.version }}
+        name: "Release v${{ steps.get-version.outputs.version }}"
         body: |
           Automated release for Naukri Ninja
-          Version: ${{ steps.bump-version.outputs.new_version }}
+          Version: ${{ steps.get-version.outputs.version }}
           Build: ${{ github.run_number }}
           Changes:
           ${{ github.event.head_commit.message }}
-        draft: false
-        prerelease: false
         files: |
           assets/naukri-ninja.exe
+        draft: false
+        prerelease: false
 
+    # Upload executable as workflow artifact
     - name: Upload executable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: naukri-ninja-v${{ steps.bump-version.outputs.new_version }}
+        name: naukri-ninja-v${{ steps.get-version.outputs.version }}
         path: assets/naukri-ninja.exe
         retention-days: 7
