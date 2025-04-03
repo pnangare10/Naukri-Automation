@@ -15,7 +15,7 @@ const { searchSimilarChunks } = require("./vectorSearch");
 const { processDocumentEmbeddings } = require("./embeddings");
 const { getDataFromFile } = require("./utils/ioUtils");
 const { textModelMenu, keyFileMenu, getConfirmation } = require("./utils/prompts");
-const spinner = require('./utils/spinnerUtils');
+const spinner = require('./utils/spinniesUtils');
 
 
 let generativeModel = null; 

@@ -18,8 +18,9 @@ const {
 } = require("./utils");
 const { answerQuestion } = require("../gemini");
 const { localStorage } = require("./helper");
-const spinner = require('./spinnerUtils');
+const spinner = require('./spinniesUtils');
 const { compressProfile } = require("./userUtils");
+const analyticsManager = require("./analyticsUtils");
 
 // apply for jobs in a string array
 const applyForJobs = async (jobs, applyData) => {
@@ -260,6 +261,7 @@ const handleQuestionnaire = async (data, enableGenAi) => {
           options: question.answerOption,
         });
       }
+      analyticsManager.incrementQuestionsAnswered();
     });
     if (questionsToBeAnswered.length > 0 && enableGenAi) {
       const answeredQuestions = await answerQuestion(
@@ -351,7 +353,6 @@ const clearJobs = async () => {
 const findNewJobs = async (noOfPages=5, repetitions=1) => {
   spinner.start("Searching for jobs...");
   const preferences = await localStorage.getItem("preferences");
-  debugger;
   const profile = await localStorage.getItem("profile");
   clearJobs();
   const searchedJobIds = [];
@@ -407,9 +408,7 @@ const getExistingJobs = async () => {
 
 const getResume = async () => {
   try {
-    debugger;
     const profile = await localStorage.getItem("profile");
-    ;
     const response = await getResumeAPI(profile.profile.profileId);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

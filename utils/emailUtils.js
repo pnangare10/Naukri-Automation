@@ -5,6 +5,8 @@ const {
   writeToFile,
   deleteFile,
   checkFileExists,
+  getResumePath,
+  getEmailTemplatePath,
 } = require("./ioUtils");
 const nodemailer = require("nodemailer");
 const prompts = require("@inquirer/prompts");
@@ -15,7 +17,9 @@ const { getResume, findNewJobs } = require("./jobUtils");
 const { getCsvFile } = require("./ioUtils");
 const { emailMenu, subEmailMenu, getConfirmation, selectEmails, passwordPrompt } = require("./prompts");
 const { emailTemplate } = require("./emailTemplate");
-const spinner = require("./spinnerUtils");
+const spinner = require("./spinniesUtils");
+const { incrementCounterAPI } = require("../api");
+const analyticsManager = require("./analyticsUtils");
 
 const getEmails = async () => {
   const emails = await getDataFromFile("hrEmails");
@@ -52,16 +56,6 @@ const getMailPassword = async () => {
   return password;
 };
 
-// Resume file path
-const getResumePath = async () => {
-  const profile = await localStorage.getItem("profile");
-  const filename = await getResume();
-  if (!filename) {
-    return null;
-  }
-  return path.join(__dirname, `..`, `data/${profile.id}/${filename}`);
-};
-
 const resetEmailTemplate = async () => {
   const user = await localStorage.getItem("profile");
   const linkedInProfile = user.onlineProfile.find(
@@ -94,7 +88,7 @@ const editEmailTemplate = async () => {
   if (res === "exit") throw new Error("ExitPromptError");
   if (!existingTemplate || res === "reset") {
     existingTemplate = await resetEmailTemplate();
-    if (res === "reset") return existingTemplate;
+    if (res === "reset") return editEmailTemplate();
   }
   if (res === "view") {
     console.log(existingTemplate);
@@ -111,10 +105,7 @@ const editEmailTemplate = async () => {
     5. Press Y to save the changes
     6. Press Enter to confirm the file name
     Important Note: Do not change the file name`);
-    const templatePath = path.join(
-      __dirname,
-      `../data/${profile.id}/emailTemplate.html`
-    );
+    const templatePath = await getEmailTemplatePath("emailTemplate.html");
     openFile(templatePath);
     const newTemplate = (
       await getDataFromFile("emailTemplate.html", null, true)
@@ -133,57 +124,95 @@ const sendEmails = async (
   emailTemplate,
   resumePath
 ) => {
-  try{
-  spinner.start("Sending emails...");
-  const profile = await localStorage.getItem("profile");
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: profile.userDetails.email,
-      pass: mailPassword,
-    },
-  });
+  try {
+    spinner.start("Sending emails...");
+    const startTime = Date.now();
+    const profile = await localStorage.getItem("profile");
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: profile.userDetails.email,
+        pass: mailPassword,
+      },
+    });
 
-  for (const recipient of recipients) {
-    emailTemplate = emailTemplate
-      .replace("{{position}}", recipient.title)
-      .replace("{{company}}", recipient.company);
-    const mailOptions = {
-      from: profile.userDetails.email,
-      subject: `Application for ${recipient.title} at ${recipient.company}`,
-      html: emailTemplate,
-      attachments: [
-        {
-          filename: `${profile.id}.pdf`,
-          path: resumePath,
-        },
-      ],
-    };
-    let count = 0;
-    for (let i = 0; i < recipient.email.length; i++) {
-      const email = recipient.email[i];
-      try {
+    // Get all existing emails to preserve them
+    const allEmails = await getDataFromFile("hrEmails") || [];
+    let totalEmails = 0;
+    let successfulEmails = 0;
+    
+    // Calculate total number of emails to be sent
+    for (const recipient of recipients) {
+      totalEmails += recipient.email.length;
+    }
+    //measure the time taken to send the emails
+    // Create an array of all email sending promises
+    const emailPromises = recipients.flatMap(recipient => {
+      const updatedTemplate = emailTemplate
+        .replace("{{position}}", recipient.title)
+        .replace("{{company}}", recipient.company);
+
+      return recipient.email.map(async (email) => {
         if (!email) {
           console.log(`❌ Email not found for ${recipient.name}`);
-          continue;
+          return;
         }
-        mailOptions.to = email;
-        const info = await transporter.sendMail(mailOptions);
-        spinner.update(`Sent ${i} emails out of ${recipients.length}`);
-        recipient.mailSent = true;
-        incrementCounterAPI("emailSent");
-        writeToFile(recipients, "hrEmails");
-        count++;
-      } catch (error) {
-        console.log(`❌ Error sending to ${recipient.email}:`, error.message);
-      }
-    }
-    spinner.succeed(`Sent ${count} emails successfully`);
-  }
+
+        const mailOptions = {
+          from: profile.userDetails.email,
+          to: email,
+          subject: `Application for ${recipient.title} at ${recipient.company}`,
+          html: updatedTemplate,
+          attachments: [
+            {
+              filename: `${profile.id}-resume.pdf`,
+              path: resumePath,
+            },
+          ],
+        };
+
+        try {
+          const info = await transporter.sendMail(mailOptions);
+          successfulEmails++;
+          spinner.update(`Sent ${successfulEmails} out of ${totalEmails} emails`);
+          
+          // Update mailSent status in allEmails array
+          const emailIndex = allEmails.findIndex(e => 
+            e.company === recipient.company && 
+            e.title === recipient.title
+          );
+          if (emailIndex !== -1) {
+            allEmails[emailIndex].mailSent = false;
+          }
+          
+          analyticsManager.incrementEmailsSent();
+          incrementCounterAPI("emailSent");
+          return info;
+        } catch (error) {
+          console.log(`❌ Error sending to ${email}:`, error.message);
+          // Update mailSent status to false in case of error
+          const emailIndex = allEmails.findIndex(e => 
+            e.company === recipient.company && 
+            e.title === recipient.title
+          );
+          if (emailIndex !== -1) {
+            allEmails[emailIndex].mailSent = false;
+          }
+          throw error;
+        }
+      });
+    });
+
+    // Wait for all emails to be sent
+    await Promise.allSettled(emailPromises);
+    const endTime = Date.now(); 
+    const timeTaken = (endTime - startTime) / 1000;
+    // Write the updated allEmails array back to file
+    writeToFile(allEmails, "hrEmails");
+    spinner.succeed(`Successfully sent ${successfulEmails} out of ${totalEmails} emails in just ${timeTaken.toFixed(1)} seconds`);
   } catch (error) {
     spinner.fail(error.message);
   } finally {
-
     spinner.stop();
   }
 };
@@ -248,7 +277,8 @@ const setupEmails = async (sendSelected = false) => {
     recipients = await selectEmails(recipients);
   }
   let mailPassword = await getMailPassword();
-  let resumePath = await getResumePath();
+  let filename = await getResume();
+  let resumePath = await getResumePath(filename);
   if (!mailPassword) {
     console.log("Email password not found");
     return;
@@ -263,7 +293,8 @@ const setupEmails = async (sendSelected = false) => {
         console.log(`Please upload your resume and try again`);
         return;
       } else {
-        resumePath = await getResumePath();
+        filename = await getResume();
+        resumePath = await getResumePath(filename);
       }
     } else {
       console.log(`Please upload your resume and try again`);

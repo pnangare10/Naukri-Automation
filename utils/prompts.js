@@ -232,8 +232,9 @@ const enableManualAnsweringMenu = async () =>
     context
   );
 
-const getConfirmation = async (message, defaultAnswer = true) =>
-  await prompts.select(
+const getConfirmation = async (message, defaultAnswer = true, confirm=false) => {
+  let promptFunction = confirm ? prompts.confirm : prompts.select;
+  return await promptFunction(
     {
       message: `${message}`,
       choices: [
@@ -245,6 +246,7 @@ const getConfirmation = async (message, defaultAnswer = true) =>
     },
     context
   );
+};
 
 const questionMenu = async (question) =>
   await prompts.select(
@@ -309,7 +311,9 @@ const selectProfileMenu = async (profiles) =>
       choices: profiles
         .map((profile, index) => ({ name: profile.id, value: index + 1 }))
         .concat([
+          new prompts.Separator(),
           { name: "Add New Profile", value: -1 },
+          { name: "About the author", value: "about" },
           { name: "Exit", value: "exit" },
         ]),
       theme,

@@ -3,7 +3,9 @@ const { localStorage } = require("./helper");
 const path = require("path");
 const readline = require("readline");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+const os = require("os");
 
+const TEMP_DIR = path.join(os.tmpdir(), 'naukri-ninja');
 
 const getDataFromFile = async (fileName, profile, isBuffer = false) => {
   if (profile === undefined || profile === null) {
@@ -19,7 +21,7 @@ const getDataFromFile = async (fileName, profile, isBuffer = false) => {
 const getFileData = async (fileName, isBuffer = false) => {
   try {
     //check if file exists
-    let dataFolder = path.join(__dirname, `../data/${fileName}${isBuffer ? '' : '.json'}`);
+    let dataFolder = path.join(TEMP_DIR, `/data/${fileName}${isBuffer ? '' : '.json'}`);
     if (!fs.existsSync(dataFolder)) {
       console.debug(`File ${fileName} does not exist`);
       return null;
@@ -42,7 +44,7 @@ const writeToFile = (data, fileName, profile, isBuffer = false) => {
   if (profile === undefined || profile === null) {
     profile = localStorage.getItem("profile").id;
   }
-  let dataFolder = path.join(__dirname, `../data/${profile}`);
+  let dataFolder = path.join(TEMP_DIR, `/data/${profile}`);
   if (!fs.existsSync(dataFolder)) {
     fs.mkdirSync(dataFolder, { recursive: true });
   }
@@ -51,7 +53,7 @@ const writeToFile = (data, fileName, profile, isBuffer = false) => {
 
 const writeFileData = (data, fileName, isBuffer = false) => {
   try {
-    let dataFolder = path.join(__dirname, `../data`);
+    let dataFolder = path.join(TEMP_DIR, `/data`);
     if (!fs.existsSync(dataFolder)) {
       fs.mkdirSync(dataFolder, { recursive: true });
     }
@@ -72,9 +74,8 @@ const writeFileData = (data, fileName, isBuffer = false) => {
     console.debug(err);
   }
 };
-
 const deleteFile = (fileName) => {
-  let filePath = path.join(__dirname, `../data/${fileName}`);
+  let filePath = path.join(TEMP_DIR, `/data/${fileName}`);
   if (!fs.existsSync(filePath)) {
     console.debug(`File ${fileName} does not exist`);
     return;
@@ -87,15 +88,15 @@ const deleteFile = (fileName) => {
 };
 
 const deleteFolder = (folderName) => {
-  if (!fs.existsSync(`./${folderName}`)) {
+  if (!fs.existsSync(`${TEMP_DIR}/${folderName}`)) {
     console.debug(`Folder ${folderName} does not exist`);
     return;
   }
-  fs.rmdirSync(`./${folderName}`, { recursive: true });
+  fs.rmdirSync(`${TEMP_DIR}/${folderName}`, { recursive: true });
 };
 
 const checkFileExists = (fileName) => { 
-  return fs.existsSync(`./${fileName}`);
+  return fs.existsSync(`${TEMP_DIR}/${fileName}`);
 };
 
 const exportFile = (filePath) => {
@@ -136,6 +137,18 @@ const getCsvFile = async (data, fileName) => {
   }
 };
 
+// Resume file path
+const getResumePath = async (filename) => {
+  const profile = await localStorage.getItem("profile");
+  
+  return path.join(TEMP_DIR, `/data/${profile.id}/${filename}`);
+};
+
+const getEmailTemplatePath = async (filename) => {
+  const profile = await localStorage.getItem("profile");
+  return path.join(TEMP_DIR, `/data/${profile.id}/${filename}`);
+};
+
 // Create an interface to read from the console
 const rl = readline.createInterface({
   input: process.stdin,
@@ -151,7 +164,7 @@ const askQuestion = async (question) => {
   });
 };
 
-const streamText = async (text, delay = 100) => {
+const streamText = async (text, delay = 100, isNewLine = true) => {
   // Use spread operator to properly split the string into graphemes
   const chars = [...text];
   
@@ -159,7 +172,9 @@ const streamText = async (text, delay = 100) => {
     process.stdout.write(char);
     await new Promise(resolve => setTimeout(resolve, delay));
   }
-  process.stdout.write('\n');
+  if(isNewLine){
+    process.stdout.write('\n');
+  }
 }
 
 module.exports = {
@@ -175,4 +190,6 @@ module.exports = {
   askQuestion,
   rl,
   streamText,
+  getResumePath,
+  getEmailTemplatePath,
 };

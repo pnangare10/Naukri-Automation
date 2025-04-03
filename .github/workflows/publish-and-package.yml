@@ -28,7 +28,6 @@ jobs:
         skip-tag: true  # We'll create the tag in the release step
         skip-commit: true  # Don't create commit
         skip-push: true    # Don't push changes
-        default-build-metadata: 'ci.${{ github.run_number }}'
     
     - name: Setup Node.js
       uses: actions/setup-node@v4

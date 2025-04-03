@@ -30,9 +30,10 @@ const {
   restartProgram,
 } = require("./utils/programUtils");
 const { showMainMenu } = require("./utils/prompts");
-const spinner = require("./utils/spinnerUtils");
+const spinner = require("./utils/spinniesUtils");
 const analyticsManager = require('./utils/analyticsUtils');
 const { getUnusedPhrase } = require("./constants/funPhrases");
+const { getAuthorInfo } = require("./utils/about");
 
 const repetitions = 1;
 
@@ -48,6 +49,8 @@ const doTheStuff = async (profile, preferences, useExistingJobs = false) => {
   let jobIds = [];
   try {
     console.log("Mission Job search Started...");
+    const startTime = Date.now();
+    let jobCount = 0;
     // const ans = await jobSearchMenu();
     if (useExistingJobs) {
       jobIds = await getExistingJobs();
@@ -95,15 +98,21 @@ const doTheStuff = async (profile, preferences, useExistingJobs = false) => {
           console.log(
             `Applied successfully | ${job.jobTitle} | Quota: ${result.quotaDetails.dailyApplied}`
           );
-
+          jobCount++;
           incrementCounterAPI();
           analyticsManager.incrementJobsApplied();
-          await analyticsManager.saveStats(profile.id);
           if (result.quotaDetails.dailyApplied >= dailyQuota) {
             spinner.fail("Daily quota reached");
             break;
           }
           jobIds[i].isApplied = true;
+        }
+        if (
+          result.jobs[0].status !== 200 &&
+          (!preferences.enableManualAnswering && !preferences.enableGenAi)
+        ) {
+          console.log("Skipping job as manual & genAI answering is disabled");
+          continue;
         }
         if (
           result.jobs[0].status !== 200 &&
@@ -119,9 +128,9 @@ const doTheStuff = async (profile, preferences, useExistingJobs = false) => {
             console.log(
               `Applied successfully | Quota: ${finalResult.quotaDetails.dailyApplied}`
             );
+            jobCount++;
             incrementCounterAPI();
-            analyticsManager.incrementQuestionsAnswered();
-            await analyticsManager.saveStats(profile.id);
+            analyticsManager.incrementJobsApplied();
             jobIds[i].isApplied = true;
           }
         }
@@ -145,6 +154,9 @@ const doTheStuff = async (profile, preferences, useExistingJobs = false) => {
         writeToFile(jobIds, "filteredJobIds", profile.id);
       }
     }
+    const endTime = Date.now();
+    const timeTaken = (endTime - startTime) / 1000;
+    console.log(`You applied for ${jobCount} jobs in just ${timeTaken.toFixed(1)} seconds`);
   } catch (e) {
     console.log(isDebugMode ? e : e.message);
   } finally {
@@ -197,7 +209,6 @@ const handleMainMenu = async (user, preferences) => {
 };
 
 const showAnalytics = async (user) => {
-  await analyticsManager.loadStats(user.id);
   const stats = analyticsManager.getStats();
   
   console.clear();
@@ -238,7 +249,7 @@ const startProgram = async () => {
     await startSequence();
     await autoUpdate();
     const profile = await selectProfile();
-    
+  
     const loginInfo = await login(profile);
     const authorization = loginInfo.authorization;
     localStorage.setItem("authorization", authorization);
@@ -246,6 +257,7 @@ const startProgram = async () => {
     localStorage.setItem("profile", user);
     const updatedProfiles = await manageProfiles(user, loginInfo);
     writeFileData(updatedProfiles, "profiles");
+    analyticsManager.loadStats();
 
     if (isDebugMode) console.clear();
     let preferences = await getDataFromFile("preferences");

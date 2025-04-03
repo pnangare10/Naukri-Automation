@@ -1,11 +1,12 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const spinner = require('./spinnerUtils');
+const spinner = require('./spinniesUtils');
+const os = require("os");
 
-const TIMESTAMP_FILE = path.join(__dirname, '../data/lastCheck.json');
+const TEMP_DIR = path.join(os.tmpdir(), 'naukri-ninja');
+const TIMESTAMP_FILE = path.join(TEMP_DIR, './data/lastCheck.json');
 const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
 const {getLatestVersion} = require('./cmdUtils');
 const { getConfirmation } = require('./prompts');
 

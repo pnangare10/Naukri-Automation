@@ -15,9 +15,9 @@ class AnalyticsManager {
     };
   }
 
-  async loadStats(userId) {
+  async loadStats() {
     try {
-      const stats = await getDataFromFile('analytics', userId);
+      const stats = await getDataFromFile('analytics');
       if (stats) {
         this.stats = stats;
       }
@@ -26,10 +26,10 @@ class AnalyticsManager {
     }
   }
 
-  async saveStats(userId) {
+  async saveStats() {
     try {
       this.stats.lastUpdated = new Date().toISOString();
-      await writeToFile(this.stats, 'analytics', userId);
+      await writeToFile(this.stats, 'analytics');
     } catch (error) {
       console.error('Error saving analytics:', error);
     }
@@ -38,21 +38,24 @@ class AnalyticsManager {
   incrementJobsApplied() {
     this.stats.totalJobsApplied++;
     this.updateDailyStats('jobsApplied');
+    this.saveStats();
   }
 
   incrementQuestionsAnswered() {
     this.stats.totalQuestionsAnswered++;
     this.updateDailyStats('questionsAnswered');
+    this.saveStats();
   }
 
   incrementEmailsSent() {
     this.stats.totalEmailsSent++;
     this.updateDailyStats('emailsSent');
+    this.saveStats();
   }
 
-  setCreateDate(userId) {
+  setCreateDate() {
     this.stats.createDate = new Date().toISOString();
-    this.saveStats(userId);
+    this.saveStats();
   }
 
   updateDailyStats(type) {

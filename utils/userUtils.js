@@ -15,8 +15,9 @@ const {
   enableGenAiMenu,
   passwordPrompt,
 } = require("./prompts");
-const spinner = require('./spinnerUtils');
+const spinner = require('./spinniesUtils');
 const analytics = require('./analyticsUtils');
+const { getAuthorInfo } = require("./about");
 
 const constructUser = async (apiData) => {
   const user = {
@@ -311,7 +312,11 @@ const selectProfile = async () => {
     
     if (ans === -1) return null;
     if (ans === "exit") throw new Error("ExitPromptError");
-
+    if (ans === "about") {
+      await getAuthorInfo();
+      const res = await getConfirmation("Press ENTER to continue...", true, true);
+      continue;
+    };
 
     const index = parseInt(ans, 10); // Convert ans to a number
     if (isNaN(index) || index <= 0 || index > profiles.length) {
