@@ -21,14 +21,18 @@ jobs:
 
     # Automatic version bumping based on commit messages
     - name: Bump version
+      id: version-bump
       uses: phips28/gh-action-bump-version@master
-      id: bump-version
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag-prefix: 'v'
-        skip-tag: true  # We'll create the tag in the release step
-        skip-commit: true  # Don't create commit
-        skip-push: true    # Don't push changes
-    
+        minor-wording: 'feat,feature'
+        major-wording: 'major,breaking'
+        patch-wording: 'fix,patch,refactor'
+        rc-wording: 'rc,alpha,beta'
+        skip-tag: 'true'
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -52,19 +56,29 @@ jobs:
         mkdir -p assets
         npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
       
+    # Get commit messages since last release
+    - name: Get Commit Messages
+      id: get_commits
+      run: |
+        COMMITS=$(git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --pretty=format:"- %s")
+        echo "COMMITS<<EOF" >> $GITHUB_ENV
+        echo "$COMMITS" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
     # Create GitHub release with the executable
     - name: Create Release
       uses: softprops/action-gh-release@v1
       if: success()
       with:
-        tag_name: v${{ steps.bump-version.outputs.new_version }}
-        name: "Release v${{ steps.bump-version.outputs.new_version }}"
+        tag_name: v${{ steps.version-bump.outputs.newVersion }}
+        name: "Release v${{ steps.version-bump.outputs.newVersion }}"
         body: |
           Automated release for Naukri Ninja
-          Version: ${{ steps.bump-version.outputs.new_version }}
+          Version: ${{ steps.version-bump.outputs.newVersion }}
           Build: ${{ github.run_number }}
+          
           Changes:
-          ${{ github.event.head_commit.message }}
+          ${{ env.COMMITS }}
         draft: false
         prerelease: false
         files: |
@@ -73,6 +87,6 @@ jobs:
     - name: Upload executable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: naukri-ninja-v${{ steps.bump-version.outputs.new_version }}
+        name: naukri-ninja-v${{ steps.version-bump.outputs.newVersion }}
         path: assets/naukri-ninja.exe
         retention-days: 7
