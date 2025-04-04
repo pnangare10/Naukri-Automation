@@ -18,13 +18,14 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Needed for version bumping
-        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: false
 
-    # Configure Git
-    - name: Configure Git
+    # Setup authentication for pushing
+    - name: Configure Git Authentication
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
     # Get the current version from package.json
     - name: Get current version
@@ -62,19 +63,32 @@ jobs:
       run: |
         NEW_VERSION=${{ steps.version-bump.outputs.newVersion }}
         if [ ! -z "$NEW_VERSION" ]; then
-          # Update package.json version
-          npm version $NEW_VERSION --no-git-tag-version
+          echo "Updating to version $NEW_VERSION"
+          
+          # Update version in package.json directly
+          jq ".version = \"$NEW_VERSION\"" package.json > temp.json && mv temp.json package.json
           
           # Store the new version
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           
-          # Commit and push the updated package.json
-          git add package.json package-lock.json
+          # Stage and commit changes
+          git add package.json
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          git push
+          
+          # Push changes
+          git push origin HEAD:main || {
+            echo "Failed to push changes"
+            echo "Fetching latest changes and retrying..."
+            git fetch
+            git rebase origin/main
+            git push origin HEAD:main
+          }
+          
+          echo "Successfully updated version to $NEW_VERSION"
         else
           # If no new version, use current version
           CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "No new version detected, using current version: $CURRENT_VERSION"
           echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
         fi
       
