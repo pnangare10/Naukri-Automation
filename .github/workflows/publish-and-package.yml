@@ -61,7 +61,7 @@ jobs:
     - name: Update package.json version
       id: update_version
       run: |
-        NEW_VERSION=${{ steps.version-bump.outputs.newVersion }}
+        NEW_VERSION=${{ steps.version-bump.outputs.new_version }}
         if [ ! -z "$NEW_VERSION" ]; then
           echo "Updating to version $NEW_VERSION"
           
