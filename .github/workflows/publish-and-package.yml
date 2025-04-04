@@ -59,7 +59,20 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    # Check if version exists in npm registry
+    - name: Check npm version
+      id: check_version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        if npm view naukri-ninja@$VERSION version >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Version $VERSION already exists in npm registry, skipping publish"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+      
     - name: Publish to npm
+      if: steps.check_version.outputs.exists != 'true'
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -93,6 +106,7 @@ jobs:
           Version: ${{ steps.version-bump.outputs.newVersion }}
           Previous Version: ${{ steps.current_version.outputs.version }}
           Build: ${{ github.run_number }}
+          NPM Publish: ${{ steps.check_version.outputs.exists == 'true' && 'Skipped (version exists)' || 'Success' }}
           
           Changes:
           ${{ env.COMMITS }}
