@@ -1,6 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI("AIzaSyDBGs8hh0-GsQlyqxU7dCmxWfpEhfBomTA");
+const {getGeminiModel} = require("./gemini")
 
 // Split document into chunks
 const splitIntoChunks = (document, chunkSize = 100) => {
@@ -17,7 +16,7 @@ const splitIntoChunks = (document, chunkSize = 100) => {
 // Get embeddings for text
 const getEmbeddings = async (text) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "embedding-001" });
+    const model = await getGeminiModel();
     const result = await model.embedContent(text);
     
     if (!result) {

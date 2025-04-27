@@ -242,6 +242,7 @@ const handleEmailsMenu = async () => {
 };
 // Function to send emails
 const setupEmails = async (sendSelected = false) => {
+  try {
   const profile = await localStorage.getItem("profile");
 
   let recipients = await getEmails();
@@ -304,6 +305,13 @@ const setupEmails = async (sendSelected = false) => {
   let emailTemplate = await editEmailTemplate();
   if (!emailTemplate) return;
   await sendEmails(recipients, mailPassword, emailTemplate, resumePath);
+} catch(error){
+  if(error.responseCode == 535) {
+    await getMailPassword();
+    await selectEmails();
+    return;
+  }
+}
 };
 
 const clearEmails = async () => {

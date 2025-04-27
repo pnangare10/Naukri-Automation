@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { getEmbeddings } = require("./embeddings.js");
-
+const {getModelResponse} = require("./gemini.js");
 
 const genAI = new GoogleGenerativeAI("AIzaSyDBGs8hh0-GsQlyqxU7dCmxWfpEhfBomTA");
 const generativeModel = genAI.getGenerativeModel({
@@ -44,8 +44,7 @@ const generateAnswer = async (question, contextChunks) => {
     ${contextChunks.join("\n\n")}
     Question: ${question}
     Answer the question using the provided context. If the answer isn't in the context, say "I don't know". Answer:`;
-
-  const result = await generativeModel.generateContent(prompt);
+  const result = await getModelResponse(prompt);
   return result.response.text();
 }
 

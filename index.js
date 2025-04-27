@@ -34,7 +34,7 @@ const spinner = require("./utils/spinniesUtils");
 const analyticsManager = require('./utils/analyticsUtils');
 const { getUnusedPhrase } = require("./constants/funPhrases");
 const { getAuthorInfo } = require("./utils/about");
-
+const { checkForUpdates } = require("./utils/updater");
 const repetitions = 1;
 
 const isDebugMode = process.execArgv.includes("--inspect");
@@ -336,3 +336,4 @@ if(!isDebugMode){
 }
 
 startProgram();
+// checkForUpdates();

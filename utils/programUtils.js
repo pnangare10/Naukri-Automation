@@ -9,6 +9,7 @@ const TIMESTAMP_FILE = path.join(TEMP_DIR, './data/lastCheck.json');
 const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const {getLatestVersion} = require('./cmdUtils');
 const { getConfirmation } = require('./prompts');
+const { downloadUpdate } = require('../updateZip');
 
 const checkForUpdates = async (packageName, currentVersion) => {
   try {
@@ -105,11 +106,12 @@ const autoUpdate = async (force = false) => {
   // Proceed with update check
   try {
     const updateAvailable = await checkForUpdates(packageName, currentVersion);
-    if (updateAvailable) {
+    if (true || updateAvailable) {
       const res = await getConfirmation("Update available. Install now?");
       if(res) {
         spinner.start('Installing update...');
-        await installUpdate(packageName);
+        // await installUpdate(packageName);
+        await downloadUpdate()
         spinner.succeed('Update installed. Restart to apply changes.');
         await restartProgram();
         process.exit(0);
