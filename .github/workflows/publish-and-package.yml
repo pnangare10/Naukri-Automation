@@ -111,10 +111,9 @@ jobs:
         npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
 
     # Zip the source code and add it to assets
-    - name: Zip source code using git archive
+    - name: Zip source code
       run: |
-        mkdir -p assets
-        git archive --format=zip --output=./assets/naukri-source-code.zip HEAD
+        zip -r ./assets/naukri-source-code.zip . \ -x "node_modules/*" ".git/*" ".github/*" "assets/*"
 
     - name: Get Commit Messages
       id: get_commits
