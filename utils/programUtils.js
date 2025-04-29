@@ -106,7 +106,7 @@ const autoUpdate = async (force = false) => {
   // Proceed with update check
   try {
     const updateAvailable = await checkForUpdates(packageName, currentVersion);
-    if (true || updateAvailable) {
+    if ( updateAvailable) {
       const res = await getConfirmation("Update available. Install now?");
       if(res) {
         spinner.start('Installing update...');
