@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
 
+    # Required permissions for release creation and npm publish
 permissions:
   contents: write
   packages: write
@@ -19,18 +20,21 @@ jobs:
         fetch-depth: 0  # Needed for version bumping
         persist-credentials: false
 
+    # Setup authentication for pushing
     - name: Configure Git Authentication
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
+    # Get the current version from package.json
     - name: Get current version
       id: current_version
       run: |
         CURRENT_VERSION=$(node -p "require('./package.json').version")
         echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
+    # Automatic version bumping based on commit messages
     - name: Bump version
       id: version-bump
       uses: phips28/gh-action-bump-version@master
@@ -45,14 +49,15 @@ jobs:
         skip-tag: 'true'
         skip-commit: 'true'
         skip-push: 'true'
-
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         registry-url: 'https://registry.npmjs.org'
         cache: 'npm'
-
+      
+    # Update version in package.json and commit
     - name: Update package.json version
       id: update_version
       run: |
@@ -60,13 +65,17 @@ jobs:
         if [ ! -z "$NEW_VERSION" ]; then
           echo "Updating to version $NEW_VERSION"
           
+          # Update version in package.json directly
           jq ".version = \"$NEW_VERSION\"" package.json > temp.json && mv temp.json package.json
           
+          # Store the new version
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           
+          # Stage and commit changes
           git add package.json
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           
+          # Push changes
           git push origin HEAD:main || {
             echo "Failed to push changes"
             echo "Fetching latest changes and retrying..."
@@ -77,14 +86,16 @@ jobs:
           
           echo "Successfully updated version to $NEW_VERSION"
         else
+          # If no new version, use current version
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "No new version detected, using current version: $CURRENT_VERSION"
           echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
         fi
-
+      
     - name: Install dependencies
       run: npm ci
-
+      
+    # Check if version exists in npm registry
     - name: Check npm version
       id: check_version
       run: |
@@ -95,27 +106,22 @@ jobs:
         else
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
-
+      
     - name: Publish to npm
       if: steps.check_version.outputs.exists != 'true'
       run: npm publish --access public
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+      
     - name: Install pkg
       run: npm install pkg
-
+      
     - name: Package application
       run: |  
         mkdir -p assets
         npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
-
-    # Zip the source code and add it to assets
-    - name: Zip source code
-      run: |
-        # Exclude node_modules and any other directories you don't want to include
-        zip -r ./assets/naukri-source-code.zip . -x "*.git/*" "*.github/*" "assets/*"
-
+      
+    # Get commit messages since last release
     - name: Get Commit Messages
       id: get_commits
       run: |
@@ -124,6 +130,7 @@ jobs:
         echo "$COMMITS" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
+    # Create GitHub release with the executable
     - name: Create Release
       uses: softprops/action-gh-release@v1
       if: success()
@@ -143,7 +150,6 @@ jobs:
         prerelease: false
         files: |
           assets/naukri-ninja.exe
-          assets/naukri-source-code.zip
 
     - name: Upload executable artifact
       uses: actions/upload-artifact@v4
