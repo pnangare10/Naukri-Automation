@@ -116,6 +116,7 @@ const manageProfiles = async (profile, loginInfo) => {
   } else {
     profiles.push(data);
     analytics.setCreateDate(data.id);
+    console.log("new user added")
     await incrementCounterAPI('newUser');
   }
   return profiles;

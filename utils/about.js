@@ -59,7 +59,7 @@ const getAuthorInfo = async () => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   await streamText("If you ever need to contact me, feel free to reach out to me at ", 60, true);
   await new Promise(resolve => setTimeout(resolve, 500));
-  await streamText("🤙 9145266274 \n✉ pranesh.nangare@gmail.com\n🛄 https://www.linkedin.com/in/pranesh-nangare/", 60, true);
+  await streamText("🤙 9145266274 \n✉ praneshnangare10@gmail.com\n🛄 https://www.linkedin.com/in/pranesh-nangare/", 60, true);
   await new Promise(resolve => setTimeout(resolve, 500));
   process.stdout.write("\n");
   await streamText("Peace out! 😎✌\n\n", 60, true);
