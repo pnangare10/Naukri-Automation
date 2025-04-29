@@ -114,7 +114,7 @@ jobs:
     - name: Zip source code
       run: |
         # Exclude node_modules and any other directories you don't want to include
-        zip -r ./assets/naukri-source-code.zip . -x "node_modules" "*.git/*" "*.github/*" "assets/*"
+        zip -r ./assets/naukri-source-code.zip . -x "*.git/*" "*.github/*" "assets/*"
 
     - name: Get Commit Messages
       id: get_commits
