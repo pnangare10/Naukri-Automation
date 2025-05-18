@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { getEmbeddings } = require("./embeddings.js");
-const {getModelResponse} = require("./gemini.js");
+const { getEmbeddings } = require("./utils/embeddings");
+const {getModelResponse} = require("./gemini");
 
 const genAI = new GoogleGenerativeAI("AIzaSyDBGs8hh0-GsQlyqxU7dCmxWfpEhfBomTA");
 const generativeModel = genAI.getGenerativeModel({
@@ -80,6 +80,5 @@ const test = async () => {
 module.exports = { documentQA,
   searchSimilarChunks,
   generateAnswer,
-  getEmbeddings,
   cosineSimilarity,
  };
