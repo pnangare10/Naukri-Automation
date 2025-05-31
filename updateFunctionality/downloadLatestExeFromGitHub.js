@@ -1,13 +1,13 @@
 const { https } = require('follow-redirects'); // follows 3xx redirects
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const { spawn } = require('child_process');
 
 /**
  * Downloads the latest .exe file from GitHub Releases
  * @param {string} owner - GitHub username or org
  * @param {string} repo - Repository name
- * @param {string} [downloadPath] - Optional path where to save the .exe. If not provided, uses the release filename.
+ * @param {string} [downloadPath] - Optional path where to save the .exe. If not provided, uses the release filename in the current executable's folder.
  */
 const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
   const options = {
@@ -37,9 +37,9 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
           return;
         }
 
-        // Use original filename if downloadPath not provided
         const fileName = asset.name;
-        const finalPath = downloadPath || path.join(__dirname, '..', fileName);
+        const baseDir = path.dirname(process.execPath); // Use real directory even in pkg
+        const finalPath = downloadPath || path.join(baseDir, fileName);
         const file = fs.createWriteStream(finalPath);
 
         console.log(`📥 Downloading: ${asset.browser_download_url}`);
@@ -71,7 +71,7 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
             });
           });
         }).on('error', err => {
-          fs.unlink(finalPath, () => {}); // Delete the file if error
+          fs.unlink(finalPath, () => {});
           console.error('❌ Download error:', err.message);
         });
 
@@ -82,8 +82,7 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
   }).on('error', err => {
     console.error('❌ GitHub API error:', err.message);
   });
-}
-
+};
 
 
 /**
@@ -93,18 +92,17 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
 function launchNewExeAndExit(exePath) {
   console.log(`🚀 Launching new application from: ${exePath}`);
 
-  // Start the new exe
-  execFile(exePath, (error) => {
-    if (error) {
-      console.error('❌ Failed to launch new application:', error.message);
-    }
+  const child = spawn(exePath, [], {
+    detached: true,
+    stdio: 'ignore'
   });
 
-  // Close current app after a short delay to ensure launch
+  child.unref();
+
   setTimeout(() => {
     console.log('🛑 Exiting old application...');
-    process.exit(0); // Gracefully exits the Node.js process
-  }, 1000); // 1 second delay to let the new app start
+    process.exit(0);
+  }, 1000);
 }
 
 module.exports = {
