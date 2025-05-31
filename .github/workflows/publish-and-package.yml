@@ -119,7 +119,7 @@ jobs:
     - name: Package application
       run: |  
         mkdir -p assets
-        npx pkg . --output ./assets/naukri-ninja.exe --targets node18-win-x64
+        npx pkg . --output ./assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe --targets node18-win-x64
       
     # Get commit messages since last release
     - name: Get Commit Messages
