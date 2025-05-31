@@ -1,7 +1,7 @@
 {
   "name": "naukri-ninja",
   "version": "2.12.21",
-  "description": "Naukri automation tool to fetch, filter , and apply for jobs automatically using gen ai.",
+  "description": "Naukri automation tool to fetch, filter, and apply for jobs automatically using gen ai.",
   "main": "index.js",
   "author": "Pranesh Nangare",
   "scripts": {
