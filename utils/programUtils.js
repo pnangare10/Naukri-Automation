@@ -10,6 +10,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const {getLatestVersion} = require('./cmdUtils');
 const { getConfirmation } = require('./prompts');
 const { downloadUpdate } = require('../updateZip');
+const { downloadLatestExeFromGitHub } = require('../updateFunctionality/downloadLatestExeFromGitHub');
 
 const checkForUpdates = async (packageName, currentVersion) => {
   try {
@@ -111,10 +112,11 @@ const autoUpdate = async (force = false) => {
       if(res) {
         spinner.start('Installing update...');
         // await installUpdate(packageName);
-        await downloadUpdate()
+        await downloadLatestExeFromGitHub("pnangare10", "Naukri-Automation");
+
         spinner.succeed('Update installed. Restart to apply changes.');
-        await restartProgram();
-        process.exit(0);
+        // await restartProgram();
+        // process.exit(0);
       }
     }
   } catch (error) {

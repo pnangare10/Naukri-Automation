@@ -336,4 +336,3 @@ if(!isDebugMode){
 }
 
 startProgram();
-// checkForUpdates();

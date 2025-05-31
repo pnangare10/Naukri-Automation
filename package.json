@@ -28,6 +28,7 @@
     "@google/generative-ai": "^0.21.0",
     "@inquirer/prompts": "^7.2.3",
     "csv-writer": "^1.6.0",
+    "follow-redirects": "^1.15.9",
     "naukri-ninja": "file:",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.0",
