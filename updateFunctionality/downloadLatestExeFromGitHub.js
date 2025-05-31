@@ -90,19 +90,29 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
  * @param {string} exePath - Full path to the new .exe file
  */
 function launchNewExeAndExit(exePath) {
-  console.log(`🚀 Launching new application from: ${exePath}`);
+  console.log(`🚀 Launching: ${exePath}`);
 
-  const child = spawn(exePath, [], {
+  // Use double quotes ONLY if there's a space in the path, and pass it correctly
+  const command = `start "" "${exePath}"`; // "" is the window title placeholder
+
+  const child = spawn(command, {
     detached: true,
-    stdio: 'ignore'
+    stdio: 'ignore',
+    shell: true,
+    windowsHide: true
   });
 
-  child.unref();
+  console.log(`Child process PID: ${child.pid}`);
 
+  child.on('error', (err) => {
+    console.error('❌ Failed to start child process:', err);
+  });
+
+  // Exit after giving the child process time to start
   setTimeout(() => {
-    console.log('🛑 Exiting old application...');
+    console.log('🛑 Exiting parent process...');
     process.exit(0);
-  }, 1000);
+  }, 2000);
 }
 
 module.exports = {
