@@ -106,7 +106,7 @@ jobs:
         else
           echo "exists=false" >> $GITHUB_OUTPUT
         fi
-      
+
     - name: Publish to npm
       if: steps.check_version.outputs.exists != 'true'
       run: npm publish --access public
@@ -119,9 +119,9 @@ jobs:
     - name: Package application
       run: |  
         mkdir -p assets
-        npx pkg . --output ./assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe --targets node18-win-x64
-      
-    # Get commit messages since last release
+        VERSION=${{ steps.update_version.outputs.new_version }}
+        npx pkg . --output ./assets/naukri-ninja-v$VERSION.exe --targets node18-win-x64
+
     - name: Get Commit Messages
       id: get_commits
       run: |
@@ -149,11 +149,11 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          assets/naukri-ninja.exe
+          assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe
 
     - name: Upload executable artifact
       uses: actions/upload-artifact@v4
       with:
         name: naukri-ninja-v${{ steps.update_version.outputs.new_version }}
-        path: assets/naukri-ninja.exe
+        path: assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe
         retention-days: 7
