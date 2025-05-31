@@ -9,7 +9,7 @@ const { spawn } = require('child_process');
  * @param {string} repo - Repository name
  * @param {string} [downloadPath] - Optional path where to save the .exe. If not provided, uses the release filename in the current executable's folder.
  */
-const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
+const downloadLatestExeFromGitHub =async(owner, repo, downloadPath) => {
   const options = {
     hostname: 'api.github.com',
     path: `/repos/${owner}/${repo}/releases/latest`,
@@ -89,7 +89,7 @@ const downloadLatestExeFromGitHub = (owner, repo, downloadPath) => {
  * Launches the new exe and exits the current app
  * @param {string} exePath - Full path to the new .exe file
  */
-function launchNewExeAndExit(exePath) {
+const launchNewExeAndExit = (exePath) => {
   console.log(`🚀 Launching: ${exePath}`);
 
   // Use double quotes ONLY if there's a space in the path, and pass it correctly
@@ -101,8 +101,6 @@ function launchNewExeAndExit(exePath) {
     shell: true,
     windowsHide: true
   });
-
-  console.log(`Child process PID: ${child.pid}`);
 
   child.on('error', (err) => {
     console.error('❌ Failed to start child process:', err);
