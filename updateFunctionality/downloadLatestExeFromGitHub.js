@@ -1,116 +1,128 @@
-const { https } = require('follow-redirects'); // follows 3xx redirects
+const { https } = require('follow-redirects');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
 /**
- * Downloads the latest .exe file from GitHub Releases
- * @param {string} owner - GitHub username or org
- * @param {string} repo - Repository name
- * @param {string} [downloadPath] - Optional path where to save the .exe. If not provided, uses the release filename in the current executable's folder.
+ * Fetch the latest release asset (.exe) from GitHub API
  */
-const downloadLatestExeFromGitHub =async(owner, repo, downloadPath) => {
-  const options = {
-    hostname: 'api.github.com',
-    path: `/repos/${owner}/${repo}/releases/latest`,
-    headers: {
-      'User-Agent': 'Node.js App',
-      'Accept': 'application/vnd.github.v3+json',
-    },
-  };
+async function getLatestExeDownloadUrl(owner, repo) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.github.com',
+      path: `/repos/${owner}/${repo}/releases/latest`,
+      headers: {
+        'User-Agent': 'Node.js App',
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    };
 
-  https.get(options, res => {
-    if (res.statusCode !== 200) {
-      console.error(`❌ GitHub API request failed with status: ${res.statusCode}`);
-      return;
-    }
-
-    let data = '';
-    res.on('data', chunk => data += chunk);
-    res.on('end', () => {
-      try {
-        const release = JSON.parse(data);
-        const asset = release.assets.find(a => a.name.endsWith('.exe'));
-
-        if (!asset) {
-          console.error('❌ No .exe asset found in latest release.');
-          return;
-        }
-
-        const fileName = asset.name;
-        const baseDir = path.dirname(process.execPath); // Use real directory even in pkg
-        const finalPath = downloadPath || path.join(baseDir, fileName);
-        const file = fs.createWriteStream(finalPath);
-
-        console.log(`📥 Downloading: ${asset.browser_download_url}`);
-        console.log(`📂 Saving as: ${finalPath}`);
-
-        https.get(asset.browser_download_url, {
-          headers: {
-            'User-Agent': 'Node.js App',
-            'Accept': 'application/octet-stream'
-          }
-        }, response => {
-          if (response.statusCode !== 200) {
-            console.error(`❌ Download failed with status: ${response.statusCode}`);
-            response.setEncoding('utf8');
-            let body = '';
-            response.on('data', chunk => body += chunk);
-            response.on('end', () => {
-              console.error('❌ Error response body:', body);
-            });
-            return;
-          }
-
-          response.pipe(file);
-
-          file.on('finish', () => {
-            file.close(() => {
-              console.log(`✅ Download completed: ${finalPath}`);
-              launchNewExeAndExit(finalPath);
-            });
-          });
-        }).on('error', err => {
-          fs.unlink(finalPath, () => {});
-          console.error('❌ Download error:', err.message);
-        });
-
-      } catch (err) {
-        console.error('❌ JSON Parse error:', err.message);
+    https.get(options, res => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`GitHub API returned ${res.statusCode}`));
       }
-    });
-  }).on('error', err => {
-    console.error('❌ GitHub API error:', err.message);
-  });
-};
 
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const release = JSON.parse(data);
+          const asset = release.assets.find(a => a.name.endsWith('.exe'));
+          if (!asset) return reject(new Error('No .exe asset found'));
+          resolve({ url: asset.browser_download_url, name: asset.name });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
 
 /**
- * Launches the new exe and exits the current app
- * @param {string} exePath - Full path to the new .exe file
+ * Download a file from a given URL and save it locally
  */
-const launchNewExeAndExit = (exePath) => {
-  console.log(`🚀 Launching: ${exePath}`);
+async function downloadFile(url, outputPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(outputPath);
 
-  // Use double quotes ONLY if there's a space in the path, and pass it correctly
-  const command = `start "" "${exePath}"`; // "" is the window title placeholder
+    https.get(url, {
+      headers: {
+        'User-Agent': 'Node.js App',
+        'Accept': 'application/octet-stream'
+      }
+    }, res => {
+      if (res.statusCode !== 200) {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          reject(new Error(`Download failed with status ${res.statusCode}, body: ${body}`));
+        });
+        return;
+      }
 
-  const child = spawn(command, {
-    detached: true,
-    stdio: 'ignore',
-    shell: true,
-    windowsHide: true
+      res.pipe(file);
+      file.on('finish', () => {
+        file.close(resolve);
+      });
+    }).on('error', err => {
+      fs.unlink(outputPath, () => {});
+      reject(err);
+    });
   });
+}
 
-  child.on('error', (err) => {
-    console.error('❌ Failed to start child process:', err);
+/**
+ * Launch the EXE file and wait briefly before exiting
+ */
+async function launchNewExeAndExit(exePath) {
+  return new Promise((resolve, reject) => {
+    console.log(`🚀 Launching: ${exePath}`);
+
+    const command = `start "" "${exePath}"`;
+
+    const child = spawn(command, {
+      detached: true,
+      stdio: 'ignore',
+      shell: true,
+      windowsHide: true
+    });
+
+    child.on('error', (err) => {
+      console.error('❌ Failed to start child process:', err);
+      return reject(err);
+    });
+
+    child.on('spawn', () => {
+      setTimeout(() => {
+        resolve();
+        process.exit(0);
+      }, 100);
+    });
+   
   });
+}
 
-  // Exit after giving the child process time to start
-  setTimeout(() => {
-    console.log('🛑 Exiting parent process...');
-    process.exit(0);
-  }, 2000);
+/**
+ * Combined flow: download and launch new EXE from GitHub
+ */
+async function downloadLatestExeFromGitHub(owner, repo, downloadPath) {
+  try {
+    const { url, name } = await getLatestExeDownloadUrl(owner, repo);
+    const baseDir = path.dirname(process.execPath);
+    const finalPath = downloadPath || path.join(baseDir, name);
+
+    // console.log(`📥 Downloading from: ${url}`);
+    // console.log(`📂 Saving to: ${finalPath}`);
+
+    await downloadFile(url, finalPath);
+    // console.log(`✅ Download complete: ${finalPath}`);
+
+    await launchNewExeAndExit(finalPath);
+
+    process.exit(0); // Exit only after launching
+  } catch (err) {
+    console.error('❌ Update failed:', err);
+  }
 }
 
 module.exports = {

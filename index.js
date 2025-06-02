@@ -165,6 +165,13 @@ const doTheStuff = async (profile, preferences, useExistingJobs = false) => {
   }
 };
 
+const configurePreferences = async (user) => {
+  preferences = await getPreferences(user);
+  localStorage.setItem("preferences", preferences);
+  writeToFile(preferences, "preferences", user.id);
+  return preferences;
+}
+
 const handleMainMenu = async (user, preferences) => {
   while(true){
     let res = await showMainMenu();
@@ -198,9 +205,7 @@ const handleMainMenu = async (user, preferences) => {
         await restartProgram();
         break;
       case "configure":
-        preferences = await getPreferences(user);
-        localStorage.setItem("preferences", preferences);
-        writeToFile(preferences, "preferences", user.id);
+        preferences = await configurePreferences(user);
         return preferences;
       default:
         break;
@@ -261,6 +266,7 @@ const startProgram = async () => {
 
     if (isDebugMode) console.clear();
     let preferences = await getDataFromFile("preferences");
+    if(!preferences) preferences = await configurePreferences(user);
     localStorage.setItem("preferences", preferences);
     preferences = await handleMainMenu(user, preferences);
     if(preferences) await doTheStuff(user, preferences);
@@ -336,3 +342,4 @@ if(!isDebugMode){
 }
 
 startProgram();
+

@@ -12,10 +12,10 @@ const { openFolder, openUrl } = require("./utils/cmdUtils");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { textModelMenu, keyFileMenu, getConfirmation } = require("./utils/prompts");
 const spinner = require('./utils/spinniesUtils');
-
+const { writeToFile } = require("./utils/ioUtils");
+2
 
 let generativeModel = null; 
-let questionEmbeddings = null;
 /**
  * Captures user configuration through CLI prompts.
  */
@@ -153,11 +153,15 @@ const getGeminiUserConfiguration = async (preferences) => {
     const textModel = await textModelMenu(genAiConfig.textModel);
 
     preferences.genAiConfig.textModel = textModel;
+    writeToFile(preferences, "preferences");
+    localStorage.setItem("preferences", preferences);
     try {
       await initializeGeminiModel(preferences.genAiConfig);
       await pingModel();
       preferences.enableGenAi = true;
     } catch (e) {
+      console.log(e.message);
+      console.debug(e);
       let choice = await getConfirmation(
         "Would you like to do configuration again? (Select no to disable Gen AI application)"
       );
@@ -241,7 +245,7 @@ const getModelResponse = async (prompt) => {
     const model = await getGeminiModel();
     if (model == null) return null;
     const preferences = localStorage.getItem("preferences");
-    const genAiConfig = preferences.genAiConfig;
+    const genAiConfig = preferences?.genAiConfig;
 
   if (!genAiConfig) {
     throw new Error("AI configuration not found in preferences.");
@@ -275,6 +279,16 @@ const getModelResponse = async (prompt) => {
   }
 };
 
+const pingModel = async (prompt) => {
+  try {
+    spinner.start("Pinging model...");
+    const result = await getModelResponse(prompt ?? "Hello How are you");
+    spinner.succeed("Model pinged successfully");
+  } catch (e) {
+    spinner.fail(`Error while pinging model: ${e.message}`);
+    throw e;
+  }
+};
 
 module.exports = {
 
@@ -282,4 +296,5 @@ module.exports = {
   initializeGeminiModel,
   getGeminiModel,
   getModelResponse,
+  pingModel,
 };

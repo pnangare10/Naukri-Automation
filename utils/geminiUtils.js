@@ -10,6 +10,7 @@ const {
   getGeminiModel,
   getModelResponse,
 } = require("../gemini");
+let questionEmbeddings = null;
 
 /**
  * Example function to check job suitability.
@@ -93,21 +94,9 @@ const answerQuestion = async (questions, profileDetails) => {
   }
 };
 
-const pingModel = async (prompt) => {
-  try {
-    spinner.start("Pinging model...");
-    const model = await getGeminiModel();
-    if (model == null) return null;
-    const result = await model.generateContent(prompt ?? "Hello How are you");
-    spinner.succeed("Model pinged successfully");
-  } catch (e) {
-    spinner.fail(`Error while pinging model: ${e.message}`);
-    throw e;
-  }
-};
+
 
 module.exports = {
-  pingModel,
   checkSuitability,
   answerQuestion,
 }
