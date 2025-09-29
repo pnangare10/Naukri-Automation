@@ -9,7 +9,6 @@ const {
   matchScoreAPI,
   getResumeAPI,
 } = require("../api");
-
 const {
   writeToFile,
   getDataFromFile,
@@ -57,9 +56,9 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
       const batch = jobIds.slice(i, i + batchSize);
 
       // Process the current batch in parallel
-      const batchPromises = batch.map(async (jobId) => {
+      const batchPromises = batch.map(async (job) => {
         try {
-          const matchScoreResponse = await matchScoreAPI(jobId);
+          const matchScoreResponse = await matchScoreAPI(job.jobId);
           let matchScore = null;
           if (matchScoreResponse.status === 200) {
             matchScore = await matchScoreResponse.json();
@@ -69,61 +68,48 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
             )
               return null;
           }
-          const jobDetailsResponse = await getJobDetailsAPI(jobId);
-          if (jobDetailsResponse.status === 200) {
-            const data = await jobDetailsResponse.json();
-            if (data.jobDetails) {
-              const {
-                salaryDetail,
-                applyCount,
-                minimumExperience,
-                videoProfilePreferred,
-                applyRedirectUrl,
-                vacany,
-                createdDate,
-                jobId,
-                jobRole,
-                companyDetail,
-                description,
-                title,
-              } = data.jobDetails;
+          // const jobDetailsResponse = await getJobDetailsAPI(job.jobId);
+          if (true) {
+            // const data = await jobDetailsResponse.json();
+            if (true) {
+              // const {
+              //   salaryDetail,
+              //   applyCount,
+              //   minimumExperience,
+              //   videoProfilePreferred,
+              //   applyRedirectUrl,
+              //   vacany,
+              //   createdDate,
+              //   jobId,
+              //   jobRole,
+              //   companyDetail,
+              //   description,
+              //   title,
+              // } = data.jobDetails;
 
               return {
-                minimumSalary: salaryDetail.minimumSalary,
-                maximumSalary: salaryDetail.maximumSalary,
-                applyCount,
-                minimumExperience,
-                videoProfilePreferred,
-                applyRedirectUrl,
-                vacany,
-                createdDate,
-                jobId,
-                jobRole,
-                companyName: companyDetail.name,
-                description,
-                title,
+                minimumSalary: job.salaryDetail?.minimumSalary,
+                maximumSalary: job.salaryDetail?.maximumSalary,
+                // applyCount: job.applyCount,
+                minimumExperience: job?.minimumExperience,
+                // videoProfilePreferred: job.videoProfilePreferred,
+                // applyRedirectUrl: job.applyRedirectUrl,
+                // vacany: job.vacany,
+                createdDate: job?.createdDate,
+                jobId: job?.jobId,
+                // jobRole: job.jobRole,
+                companyName: job?.companyName,
+                description: job?.jobDescription,
+                title: job?.title,
                 matchScore: matchScore?.Keyskills,
               };
             }
-          } else if (jobDetailsResponse.status === 403) {
-            console.log("403 Forbidden:", jobDetailsResponse);
-            throw new Error("403 Forbidden");
-          } else if (jobDetailsResponse.status === 303) {
-            const data = await jobDetailsResponse.json();
-            if (data?.metaSearch?.isExpiredJob === "1") {
-              process.stdout.write("Expired Job \r");
-            }
-          } else {
-            console.log(
-              `Error fetching job details for Job ID: ${jobId}
-              Status: ${jobDetailsResponse.status}`
-            );
-          }
-          return null; // Return null if no valid job data is found.
+          } else { }
+          // return null; // Return null if no valid job data is found.
         } catch (error) {
           console.error(
-            `Error fetching job details for Job ID: ${jobId}`,
-            error.message
+            `Error fetching job details for Job ID: ${job.jobId}`,
+            error
           );
           return null; // Return null on error to avoid failing the entire batch.
         }
@@ -166,7 +152,7 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
       console.log(data);
       return [];
     }
-    const jobIds = data.jobDetails.map((job) => job.jobId);
+    const jobIds = data.jobDetails.map((job) => job);
     // console.log(`Found ${jobIds.length} jobs on page ${pageNo}`);
     let simillarJobs = [...jobIds];
     // console.log(`Searching for simillar jobs for ${repetitions} times`);
@@ -187,10 +173,10 @@ const searchSimillarJobs = async (jobIds) => {
   if (jobIds.length == 0) return simillarJobIds;
   const jobs = [];
   for (const jobId of jobIds) {
-    const response = await getSimJobsAPI(jobId);
+    const response = await getSimJobsAPI(jobId.jobId);
     if (response.status === 200) {
       const data = await response.json();
-      const jobIdsArr = data.simJobDetails.content.map((job) => job.jobId);
+      const jobIdsArr = data.simJobDetails.content.map((job) => job);
       jobs.push(...jobIdsArr);
     } else {
       console.error("Error in fetching similar jobs:");
@@ -221,7 +207,7 @@ const getRecommendedJobs = async () => {
         return [];
       }
       const data = await response.json();
-      return data.jobDetails?.map((job) => job.jobId) || [];
+      return data.jobDetails?.map((job) => job) || [];
     } catch (error) {
       console.error(`Error fetching jobs for cluster: ${cluster}`, error.message);
       return []; // Return an empty array on error to avoid failing all promises.
@@ -373,12 +359,12 @@ const findNewJobs = async (noOfPages=5, repetitions=1) => {
   });
   const recommendedJobIds = await recommendedJobs;
   searchedJobIds.push(...recommendedJobIds);
-  const uniqueJobIds = Array.from(new Set(searchedJobIds));
+  const uniqueJobIds = searchedJobIds; //Array.from(new Set(searchedJobIds));
   spinner.succeed(
     `Found total ${uniqueJobIds.length} jobs from ${noOfPages} pages.`
   );
   const jobInfo = await getJobInfo(uniqueJobIds);
-  const emailIds = getEmailsIds(jobInfo, profile.id);
+  // const emailIds = getEmailsIds(jobInfo, profile.id);
   const filteredJobs = filterJobs(jobInfo);
   writeToFile(filteredJobs, "filteredJobIds", profile.id);
   spinner.succeed(`Found ${filteredJobs.length} jobs.`);
@@ -442,26 +428,26 @@ const filterJobs = (jobInfo) => {
           (1000 * 60 * 60 * 24)
         : 0;
       return (
-        jobDetails.maximumSalary >= preferredSalary &&
+        (jobDetails?.maximumSalary == 0 || jobDetails?.maximumSalary >= preferredSalary) &&
         createdDays <= maxTime &&
-        jobDetails.applyCount <= maxApplyCount &&
-        jobDetails.minimumExperience <= experience &&
-        (jobDetails.videoProfilePreferred === undefined ||
-          jobDetails.videoProfilePreferred === videoProfile) &&
-        jobDetails.applyRedirectUrl === undefined &&
-        (jobDetails.vacany === undefined || jobDetails.vacany >= vacany)
+        // jobDetails.applyCount <= maxApplyCount &&
+        jobDetails?.minimumExperience <= experience &&
+        (jobDetails?.videoProfilePreferred === undefined ||
+          jobDetails?.videoProfilePreferred === videoProfile)
+        // jobDetails.applyRedirectUrl === undefined &&
+        // (jobDetails.vacany === undefined || jobDetails.vacany >= vacany)
       );
     })
     .map((jobDetails) => ({
       jobId: jobDetails.jobId,
-      jobTitle: jobDetails.title,
-      companyName: jobDetails.companyName,
-      description: jobDetails.description,
-      minimumSalary: jobDetails.minimumSalary,
-      maximumSalary: jobDetails.maximumSalary,
-      matchScore: jobDetails.matchScore,
+      jobTitle: jobDetails?.title,
+      companyName: jobDetails?.companyName,
+      description: jobDetails?.jobDescription,
+      minimumSalary: jobDetails?.minimumSalary,
+      maximumSalary: jobDetails?.maximumSalary,
+      matchScore: jobDetails?.matchScore,
     }))
-    .sort((a, b) => b.maximumSalary - a.maximumSalary);
+    .sort((a, b) => b?.maximumSalary - a?.maximumSalary);
   return filteredJobs;
 };
 

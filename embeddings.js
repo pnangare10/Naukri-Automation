@@ -1,5 +1,4 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const {getGeminiModel} = require("./gemini")
 
 // Split document into chunks
 const splitIntoChunks = (document, chunkSize = 100) => {
@@ -16,6 +15,7 @@ const splitIntoChunks = (document, chunkSize = 100) => {
 // Get embeddings for text
 const getEmbeddings = async (text) => {
   try {
+    const { getGeminiModel } = require("./gemini");
     const model = await getGeminiModel();
     const result = await model.embedContent(text);
     
@@ -56,8 +56,6 @@ const processDocumentEmbeddings = async (documentChunks) => {
 
   return documentData;
 }
-
-getEmbeddings("How many years of experience do you have in Angular?");
 
 module.exports = {
   processDocumentEmbeddings,
