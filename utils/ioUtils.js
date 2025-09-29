@@ -164,18 +164,24 @@ const askQuestion = async (question) => {
   });
 };
 
-const streamText = async (text, delay = 100, isNewLine = true) => {
-  // Use spread operator to properly split the string into graphemes
+const streamText = async (text = '', delay = 100, isNewLine = true) => {
+  if (typeof text !== 'string') {
+    console.error('There was an error while streaming the text');
+    console.debug(`Error while streaming text: ${text}`);
+    return;
+  }
+
   const chars = [...text];
-  
+
   for (const char of chars) {
     process.stdout.write(char);
     await new Promise(resolve => setTimeout(resolve, delay));
   }
-  if(isNewLine){
+
+  if (isNewLine) {
     process.stdout.write('\n');
   }
-}
+};
 
 module.exports = {
   getDataFromFile,

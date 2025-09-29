@@ -38,7 +38,7 @@ const updateFunPhrases = async () => {
     writeFileData(data, "funPhrases");
     return data;
   } catch (error) {
-    console.error("Error updating fun phrases:", error);
+    console.debug("Error updating fun phrases:", error);
     return [];
   }
 };

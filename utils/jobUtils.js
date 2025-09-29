@@ -15,7 +15,7 @@ const {
   getAnswerFromUser,
   getEmailsIds,
 } = require("./utils");
-const { answerQuestion } = require("../gemini");
+const { answerQuestion } = require("./geminiUtils");
 const { localStorage } = require("./helper");
 const spinner = require('./spinniesUtils');
 const { compressProfile } = require("./userUtils");

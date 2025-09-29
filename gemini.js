@@ -9,18 +9,13 @@ const fs = require("fs");
 const path = require("path");
 const { localStorage } = require("./utils/helper");
 const { openFolder, openUrl } = require("./utils/cmdUtils");
-const aiPrompts = require("./utils/genAiPrompts");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { getDataFromFile } = require("./utils/ioUtils");
-const {
-  textModelMenu,
-  keyFileMenu,
-  getConfirmation,
-} = require("./utils/prompts");
-const spinner = require("./utils/spinniesUtils");
+const { textModelMenu, keyFileMenu, getConfirmation } = require("./utils/prompts");
+const spinner = require('./utils/spinniesUtils');
+const { writeToFile } = require("./utils/ioUtils");
+2
 
-let generativeModel = null;
-let questionEmbeddings = null;
+let generativeModel = null; 
 /**
  * Captures user configuration through CLI prompts.
  */
@@ -168,11 +163,15 @@ const getGeminiUserConfiguration = async (preferences) => {
     const textModel = await textModelMenu(genAiConfig.textModel);
 
     preferences.genAiConfig.textModel = textModel;
+    writeToFile(preferences, "preferences");
+    localStorage.setItem("preferences", preferences);
     try {
       await initializeGeminiModel(preferences.genAiConfig);
       await pingModel();
       preferences.enableGenAi = true;
     } catch (e) {
+      console.log(e.message);
+      console.debug(e);
       let choice = await getConfirmation(
         "Would you like to do configuration again? (Select no to disable Gen AI application)"
       );
@@ -256,7 +255,7 @@ const getModelResponse = async (prompt) => {
     const model = await getGeminiModel();
     if (model == null) return null;
     const preferences = localStorage.getItem("preferences");
-    const genAiConfig = preferences.genAiConfig;
+    const genAiConfig = preferences?.genAiConfig;
 
     if (!genAiConfig) {
       throw new Error("AI configuration not found in preferences.");
@@ -289,97 +288,11 @@ const getModelResponse = async (prompt) => {
     spinner.stop();
   }
 };
-/**
- * Example function to check job suitability.
- */
-const checkSuitability = async (job, profile) => {
-  try {
-    spinner.start();
-    const prompt = aiPrompts.jobSuitabilityPrompt(
-      profile.skills,
-      job.description
-    );
-    let answer = await getModelResponse(prompt);
-    const jsonData = answer?.includes("```json")
-      ? answer.split("```json")[1]?.split("```")[0]?.trim()
-      : answer;
-    if (!jsonData) {
-      throw new Error(
-        `Failed to extract JSON data from the response: ${answer}`
-      );
-    }
-    const data = JSON.parse(jsonData);
-    if (data.isSuitable == "no" || data.isSuitable == "false")
-      data.isSuitable = false;
-    if (data.isSuitable == "yes" || data.isSuitable == "true")
-      data.isSuitable = true;
-    return data;
-  } catch (e) {
-    console.log(
-      "Error while generating content in checking suitability : " + e
-    );
-    console.log("Generated content is -> ");
-    console.log(response.candidates[0].content.parts[0].text);
-    throw e;
-  } finally {
-    spinner.stop();
-  }
-};
-
-const answerQuestion = async (questions, profileDetails) => {
-  try {
-    spinner.start("Generating answer...");
-    if (questionEmbeddings == null) {
-      const questionsData = await getDataFromFile("questions");
-      if (questionsData && questionsData.length !== 0) {
-        const questionsDataChunks = Object.values(questionsData).map(
-          (question) => {
-            return `Question: ${question.questionName}\nAnswer: ${question.answer}`;
-          }
-        );
-        const { processDocumentEmbeddings } = require("./embeddings");
-
-        questionEmbeddings = await processDocumentEmbeddings(
-          questionsDataChunks
-        );
-      }
-    }
-    let chunks = [];
-    if (questions && questions.length !== 0 && questionEmbeddings !== null) {
-      const searchSimilarChunks = require("./vectorSearch");
-      chunks = await Promise.all(
-        questions.map(async (question) => {
-          return searchSimilarChunks(question.question, questionEmbeddings);
-        })
-      );
-    }
-
-    const prompt = aiPrompts.answerPrompt(questions, profileDetails, chunks);
-    let answer = await getModelResponse(prompt);
-    const jsonData = answer?.includes("```json")
-      ? answer.split("```json")[1]?.split("```")[0]?.trim()
-      : answer;
-    if (!jsonData) {
-      throw new Error(
-        `Failed to extract JSON data from the response: ${answer}`
-      );
-    }
-    const data = JSON.parse(jsonData);
-    return data;
-  } catch (e) {
-    console.error("Error while generating Assistant response:", e.message);
-    return null;
-  } finally {
-    spinner.stop();
-  }
-};
 
 const pingModel = async (prompt) => {
   try {
     spinner.start("Pinging model...");
-    const model = await getGeminiModel();
-    if (model == null) return null;
-    const result = await model.generateContent(prompt ?? "Hello How are you");
+    const result = await getModelResponse(prompt ?? "Hello How are you");
     spinner.succeed("Model pinged successfully");
   } catch (e) {
     spinner.fail(`Error while pinging model: ${e.message}`);
@@ -388,11 +301,10 @@ const pingModel = async (prompt) => {
 };
 
 module.exports = {
-  checkSuitability,
-  answerQuestion,
+
   getGeminiUserConfiguration,
   initializeGeminiModel,
   getGeminiModel,
-  pingModel,
   getModelResponse,
+  pingModel,
 };
