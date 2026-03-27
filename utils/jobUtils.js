@@ -61,12 +61,19 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
           const matchScoreResponse = await matchScoreAPI(job.jobId);
           let matchScore = null;
           if (matchScoreResponse.status === 200) {
-            matchScore = await matchScoreResponse.json();
-            if (
-              matchScore.Keyskills == 0 &&
-              preferences.matchStrategy === "naukriMatching"
-            )
-              return null;
+            try {
+              matchScore = await matchScoreResponse.json();
+              if (
+                matchScore.Keyskills == 0 &&
+                preferences.matchStrategy === "naukriMatching"
+              )
+                return null;
+            } catch (parseError) {
+              console.debug(`Failed to parse match score for job ${job.jobId}`);
+            }
+          } else if (matchScoreResponse.status === 406) {
+            // reCAPTCHA required - skip this batch and retry later
+            console.debug(`reCAPTCHA block on job ${job.jobId}, skipping`);
           }
           // const jobDetailsResponse = await getJobDetailsAPI(job.jobId);
           if (true) {
@@ -124,6 +131,11 @@ const getJobInfo = async (jobIds, batchSize = 5) => {
       //   `Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`
       // );
       spinner.update(`Completed ${jobInfo.length} jobs out of ${jobIds.length} \r`);
+
+      // Add delay between batches to avoid rate limiting
+      if (i + batchSize < jobIds.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     }
     spinner.succeed("Job info fetched successfully");
     // Write the results to a file
@@ -144,6 +156,9 @@ const searchJobs = async (pageNo, keywords, repetitions) => {
       else if (results.status == 403) {
         console.log("403 Forbidden : " + results.statusText);
         throw new Error("403 Forbidden");
+      } else if (results.status == 406) {
+        console.debug("reCAPTCHA required on search - retrying");
+        return { jobDetails: [] };
       } else {
         console.log(await results.json());
       }
@@ -346,6 +361,10 @@ const findNewJobs = async (noOfPages=5, repetitions=1) => {
 
   const promises = [];
   for (let i = 0; i < noOfPages; i++) {
+    // Add delay between page requests to avoid reCAPTCHA
+    if (i > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
     const jobs = searchJobs(
       i + 1,
       preferences.desiredRole?.map(encodeURIComponent).join("%2C%20"),

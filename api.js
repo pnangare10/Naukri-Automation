@@ -10,10 +10,12 @@ const commonHeaders = {
   gid: "LOCATION,INDUSTRY,EDUCATION,FAREA_ROLE",
   pragma: "no-cache",
   priority: "u=1, i",
-    "nkparam": "jH9QnltH+MuGKLwVCzx6nuqLOex1fiLfmrNahP7GLA0SQihJC6d0hDFoJXV65lyEzWcAjLQ7SuUTKBlHw4Artw==",
-
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0",
+  nkparam:
+    "jH9QnltH+MuGKLwVCzx6nuqLOex1fiLfmrNahP7GLA0SQihJC6d0hDFoJXV65lyEzWcAjLQ7SuUTKBlHw4Artw==",
   "sec-ch-ua":
-    '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    '"Chromium";v="139", "Google Chrome";v="139", "Not-A.Brand";v="99"',
   "sec-ch-ua-mobile": "?0",
   "sec-ch-ua-platform": '"Windows"',
   "sec-fetch-dest": "empty",
@@ -32,10 +34,11 @@ const getHeaders = (isAuthenticated, isCookieRequired) => {
       authorization: `Bearer ${authorization}`,
       Cookie: `nauk_at=${authorization})}`,
     }),
-    ...(isCookieRequired && {
-      cookie:
-        '_t_ds=1beede871734549822-111beede87-01beede87; J=0; jd=031224508425; test=naukri.com; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; _ga=GA1.1.1388380775.1734549825; ninjas_new_marketing_token=55944671e42bfe1914d9ff0ff85958bc; ph_phc_s4aJa5RpiiZlHbbxy4Y1Btjhosozg9ECrSuJNVrvZuP_posthog=%7B%22distinct_id%22%3A636236%7D; _clck=1xl6nx5%7C2%7Cftq%7C0%7C1882; _ga_7TYVEWTVRG=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_JCSR1LRE3X=GS1.1.1740493309.1.1.1740493404.0.0.0; nauk_ps=default; NKWAP=db4fc3d77f3654247ba809e089a4c0fd58822d409817dbb65901a3ad0448c2d9ff003c62a2e1a36431b890266d0ecd01~e57335e68a4c79d57991fe1eeace01ba06af162a82756b4726a28621705d5d90~1~0; MYNAUKRI[UNID]=8cdb4e75d73f4f71b0d8bac441c6b12c; __gads=ID=b2c6fb293a0153e8:T=1743445614:RT=1743843932:S=ALNI_MZ8dAm8cGp4kbfrCe5RXwmJsWu-zg; __gpi=UID=000010825b096814:T=1743445614:RT=1743843932:S=ALNI_MZvPZ40hLG2xMjV4x3oykq_FuA5ZQ; __eoi=ID=6e62ab7ead75e2e0:T=1743445614:RT=1743843932:S=AA-AfjaO2UQSmQZ75wJVJ8lGoTO4; _t_us=68A1F7B4; _t_s=direct; _t_r=1030%2F%2F; persona=default; ak_bmsc=7AB18C302DBAAA9B738A43CF2E6AC652~000000000000000000000000000000~YAAQrQ7EF64VCqeYAQAAVZuvuByWJR1mHGtB+RMVzCQUvs/YoUZSNN9R7pVNsEqQal4mbKCjmfF063YM4MMRChFvO9pOTZ0EeQas1Hq19n2AduqdqW6g0Eq0LJK4PCp0NnQuyvAH2PAsdcophE4GqGz1Iz1V9Fu/IiS5UsjTL3T4MFmWnF4WW98jTZtowYSt88i1WBgPOgimdSPgpBLI378IBGnokNET+EHyMlMPDSLmxRUo4eCkCihnw77Cdio5O0SivcNu7jiseVfE/N8avIbvMxZ28shAGpbtblbNf336/geFgr3fGHW+nMO2dg5XGRSKcu68jrb9nw/hui9zv8HWjtfvZCJv9NfFFdUidi1wQUozva4Gi550/xWIQSXKyWNI9s7qnDYfDecXWaLrhvot99qbwAre+upbHa6ap1tP9qgK67lyOAX6gRjA7AhqegTlWs5wgCBhsA3TZhU=; _gcl_au=1.1.2039033437.1755445174; g_state={\"i_l\":1,\"i_p\":1755452388064}; PHPSESSID=tt6rae8ivu5l4qf2n5ndps3bj5; nauk_at=eyJraWQiOiIzIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJ1ZF9yZXNJZCI6MTgwNDAzNzg4LCJzdWIiOiIxODYwMDM2OTIiLCJ1ZF91c2VybmFtZSI6ImYxNTg0NTA1MDEuODU5NCIsInVkX2lzRW1haWwiOnRydWUsImlzcyI6IkluZm9FZGdlIEluZGlhIFB2dC4gTHRkLiIsInVzZXJBZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMzkuMC4wLjAgU2FmYXJpLzUzNy4zNiBFZGcvMTM5LjAuMC4wIiwiaXBBZHJlc3MiOiIyMDIuMTM2LjcxLjIyIiwidWRfaXNUZWNoT3BzTG9naW4iOmZhbHNlLCJ1c2VySWQiOjE4NjAwMzY5Miwic3ViVXNlclR5cGUiOiJqb2JzZWVrZXIiLCJ1c2VyU3RhdGUiOiJBVVRIRU5USUNBVEVEIiwidWRfaXNQYWlkQ2xpZW50IjpmYWxzZSwidWRfZW1haWxWZXJpZmllZCI6dHJ1ZSwidXNlclR5cGUiOiJqb2JzZWVrZXIiLCJzZXNzaW9uU3RhdFRpbWUiOiIyMDI1LTA4LTE3VDIxOjEwOjAxIiwidWRfZW1haWwiOiJwcmFuZXNobmFuZ2FyZTEwQGdtYWlsLmNvbSIsInVzZXJSb2xlIjoidXNlciIsImV4cCI6MTc1NTQ0ODgwMSwidG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJpYXQiOjE3NTU0NDUyMDEsImp0aSI6IjFlNjE2NzQ4N2JhNDQ3MDE4NWY1Yjc5YjYzOTJkNDk2IiwicG9kSWQiOiJwcm9kLTU0YjhjNmQ5OC1rbnA2dyJ9.K54S5kXZ2iued0UCNTWN3U-Z3_5DnGDO1MmShigccq2O8y-cjx1edzCazmDYW08KTVJ9sXhsPS5kcFM1H6QW8hGk5ny84OfOsJgHUy40nLVKOg_GlsYFNr541noLTdWCCqdsIug4nKtXbaI5v70ZSDOVsvrrAlC8b1a7Ai-lBSdxN5mOR0dkjfjmKnlrvkBnDeEzBWC9l9VqBc-HA47kqbbDeBmjs9OGzAxSnjER0HOcjBPWRhiD4Lo_AC5gGPXtYwPbMWJZoxR-RYBUZwQTy7-X3ckxlHPdx6hM_0etMOtvtcuNdSU3Oiq4rUs4TqR7LaHd4UIG_ikK9kVSyvoAlg; nauk_rt=1e6167487ba4470185f5b79b6392d496; is_login=1; nauk_sid=1e6167487ba4470185f5b79b6392d496; nauk_otl=1e6167487ba4470185f5b79b6392d496; _ga_T749QGK6MQ=GS2.1.s1755445174$o30$g0$t1755445201$j33$l0$h0; ACTIVE=1755445214; _ga_K2YBNZVRLL=GS2.1.s1755445172$o102$g1$t1755445216$j16$l0$h0; bm_sv=9DBE0D69EA00DB12A9FFF892133C5090~YAAQrQ7EF3AqCqeYAQAAUDa4uBzDb/bXKvFpiKSmnO6tn7znkgI4/Q/55imj157Ndq8rFautiFJtLi78BEMTA33bssJoYvFfAZ/ycU63apJCXvy+s8+9pBrvSJbJ5rtKJBzTYX91moKmmR4ruEfY9QTybZko8LGr/YVUFQjNfw9gNj2idV39q2XSdxZXTpXOG72gHxta4r+PUOhzl8W+oia7xdOrLfWld3r4S2k5ObmVZk2zRkkqwFq9BlZniGLyrA==~1',
-    }),
+    ...(isCookieRequired &&
+      false && {
+        cookie:
+          '_t_ds=1beede871734549822-111beede87-01beede87; J=0; PS=055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d; _ga=GA1.1.1388380775.1734549825; _ga_7TYVEWTVRG=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_JCSR1LRE3X=GS1.1.1740493309.1.1.1740493404.0.0.0; _ga_T749QGK6MQ=GS2.1.s1756365934$o31$g1$t1756365951$j43$l0$h0; ACTIVE=1759774314; g_state={"i_l":2,"i_p":1759860799879}; nauk_rt=9429223a690c4b95b60d433b146a0591; nauk_sid=9429223a690c4b95b60d433b146a0591; nauk_otl=9429223a690c4b95b60d433b146a0591; NKWAP=06f957e61bb11685b9ea922eb6a996bb2cd7f3fb40c29a18ff003c62a2e1a36431b890266d0ecd01~055474c5913207df0833da5505f0939499f983faf0fa15fe03810eecac297038719f715d2eb9dbc0ebdf31417b362f0d~1~0; MYNAUKRI[UNID]=3cdda6110f2c49d6a28568a4ae56f656; nauk_ps=default; __gads=ID=b2c6fb293a0153e8:T=1743445614:RT=1759774427:S=ALNI_MZ8dAm8cGp4kbfrCe5RXwmJsWu-zg; __gpi=UID=000010825b096814:T=1743445614:RT=1759774427:S=ALNI_MZvPZ40hLG2xMjV4x3oykq_FuA5ZQ; __eoi=ID=56818efb5621024f:T=1759124867:RT=1759774427:S=AA-AfjaOl3zqlIwKvnX9lM5x2q0W; test=naukri.com; nauk_cs=default; _gcl_au=1.1.811142471.1773895596; _fbp=fb.1.1773896258136.988599158443800048; nauk_at=eyJraWQiOiIzIiwidHlwIjoiSldUIiwiYWxnIjoiUlM1MTIifQ.eyJkZXZpY2VUeXBlIjoiZDNza3QwcCIsInVkX3Jlc0lkIjoyMjUwODgzNTgsInN1YiI6IjE4NTQ3MTQ0MyIsInVkX3VzZXJuYW1lIjoiZjE1ODMzMzY0NzQuOTY1My4xNjc4MzA1NjE4IiwidWRfaXNFbWFpbCI6dHJ1ZSwiaXNzIjoiSW5mb0VkZ2UgSW5kaWEgUHZ0LiBMdGQuIiwidXNlckFnZW50IjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0MS4wLjAuMCBTYWZhcmkvNTM3LjM2IEVkZy8xNDEuMC4wLjAiLCJpcEFkcmVzcyI6IjI0MDE6NDkwMDpjMGI5OjVhM2Y6N2M1MTo5ZjQ3OmRlNTU6ODIzNCIsInVkX2lzVGVjaE9wc0xvZ2luIjpmYWxzZSwidXNlcklkIjoxODU0NzE0NDMsInN1YlVzZXJUeXBlIjoiIiwidXNlclN0YXRlIjoiQVVUSEVOVElDQVRFRCIsInVkX2lzUGFpZENsaWVudCI6ZmFsc2UsInVkX2VtYWlsVmVyaWZpZWQiOnRydWUsInVzZXJUeXBlIjoiam9ic2Vla2VyIiwic2Vzc2lvblN0YXRUaW1lIjoiMjAyNS0xMC0wNlQyMzo0MzozNSIsInVkX2VtYWlsIjoiYW5raXRhdXlAZ21haWwuY29tIiwidXNlclJvbGUiOiJ1c2VyIiwiZXhwIjoxNzc0NTk1NDEwLCJ0b2tlblR5cGUiOiJhY2Nlc3NUb2tlbiIsImlhdCI6MTc3NDU5MTgxMCwianRpIjoiOTQyOTIyM2E2OTBjNGI5NWI2MGQ0MzNiMTQ2YTA1OTEiLCJwb2RJZCI6InByb2QtODVkYjY5ZmQ0OC1xcHQ1bSJ9.hy0hZIilvkvkFYvuZHZw3ChUZ8rZVc8zzPEKb-sahzewozELtRBwcmwhLie1aKAVsMJ2obwNSMMurEEdrkBGUgR0m-6RGum5aWrYOn3aGjHgR7X_ggLuoA0nRDu1WjEEWFS9JLZBQ7pllEb6iIqXQ2btnnp59AhoLrXtvs2TMc5caj_MTVRuYNdvoFLGVPiflZEbZCWBOZUbeshowdA_ePWmhNlYXNuLhyX7bLKL9NTF4rmq6tovWYyI_wzCbPp_AAcgnfhW1XECELrfmZ8vQnCKBfdTclojzpJDTb8Ajy4t2qx1HXBaPEjlS0X1v8IHxA-vm6E8eKxYezaPmLlmGQ; is_login=1; failLoginCount=0; HOWTORT=cl=1774591829127&r=https%3A%2F%2Fwww.naukri.com%2Fmnjuser%2Fhomepage; bm_mi=A3D6BD51E3724283D55FFF86EE856D8D~YAAQjwFAF/VCBgGdAQAA22XqLR+1VZ3jLPB3Z/1NLR2PDggiKPk9M8Sy+MY2gj6or+0kR3eUKyN7d0h3m2y3yUfNU3QnKw5HFZRUgz/f1YV0kup4t26qwT/9huxkV7eiz+rhGrPv3K69XJfdz+DBJ7YKsUozsvUh633FbcZ3uVTW/lNvwpoQTufaQq6AEU80olnXd+uKxmhc0TpvVBkWzaA1GloNr7AZ2qy9DvX47x/E+MCCa9Lhu2Ao71bVAVUrqwRfqbTB8H6o//aYDni8D8+0zRxRPJtCYa4hoSc8rJUz+0BlTH/m79JTQo15yzkPXx0XPWzmkYsSlHmQOThJL7G6EFdiIqpy3R07HlVWedov5dgLp2ehhguln8eZ+gVYUIkP9S1RSxuvWBwJHJEDG3wmWSrMEMguN3LaIT6uYVggJrQJvBd77zAuNdpITrLThB6JrpkTj7sSRPeX2gA=~1; _ga_K2YBNZVRLL=GS2.1.s1774591812$o122$g1$t1774591829$j43$l0$h0; ak_bmsc=6E2375D830CEC4F1643EB3F9A63C4E73~000000000000000000000000000000~YAAQjwFAF/JEBgGdAQAAlmjqLR9pL3wfpkxNwDh44o258i/Jw2HafYSWnFcdGVR1ya2qMKK7Fp2N4ikkQrojUK/Ni/ezPw8nWte3pm+Vvef99zHdWCPvy6h/6Kpgqq4VZ2jSglM57JAkNv5ewj7hM333xyOomSzsty/eusCIJibZHIw9wsDkkU2fIh2iCiMj/uGalQmQQM7GFvmPaNDLfR7DyVB6WmPukdP7kZGPpYx9Zpj3erfeA/HTCN1fNiFRIALgeqCY8iKkACJZZFyAe1mBFGyiZ5O9cc3gBDdzyBdqD4UpuX/aFm1IDHbDZlmP61KrKexq160Vh7zLH/SuGjK7GVJthNsopZCqdB9w9iRmKo7UrmXAfuzv598Pv0CAPuuPdx8w0IAzxbCkc1DAhCCYzYZ3rWSB+dQHC3bNXOqU8vKX2SuR3V9UHdV+zEDfNdXtF01GSia6jBtYhxurweOAjoVnepBey5K1G4nVthKY9bUi7KxtR6NIUIc9MLmaKakmaqzS1GZfGnFzlsiT4d6Qioykqajjh/Mqs80A6COVcPNdKSxGj6Ruf6bXYfpakOZWVs0vbzAnUh650vXC0MDhLSLJRo5Ws3uVGGMSCjdBZlWrLUrYyN6S8MFiuu3Bsfc=; bm_sv=1B266965F205DDE71F8E3B8909C7AA50~YAAQjwFAF7NHBgGdAQAA1GzqLR+uVCBpMARnzJ5DR4KEceY1NXO+2H3g9stqMiM0NGroLIm+V5AIO9ecVPoHNmjSrB7578TFtZrF8kplYNsRhqnVYAJRatAs3VU7t/AjT06gmabGkPfSoq3T78yV7FWDW2Z4gEymag75nUHT9wlPSiJNNOLyHGsGKfMib3OYVrkQN+GpfN4Ks7KvZEoV15BjIdykNPw0Ia/A+gc9wBa4v507anIwlZlnMUvcx8BA/Q==~1',
+      }),
   };
   return headers;
 };
@@ -47,7 +50,7 @@ const applyJobsAPI = async (bodyStr) =>
       headers: getHeaders(true, true),
       body: `${bodyStr},"logstr":"--drecomm_profile-2-F-0-1--17140801091455348-","flowtype":"show","crossdomain":true,"jquery":1,"rdxMsgId":"","chatBotSDK":true,"mandatory_skills":["CSS","HTML","React.Js"],"optional_skills":["Typescript","Angular"],"applyTypeId":"107","closebtn":"y","applySrc":"drecomm_profile","sid":"17140801091455348","mid":""}`,
       method: "POST",
-    }
+    },
   );
 
 const searchJobsAPI = (pageNo, keywords) =>
@@ -57,7 +60,7 @@ const searchJobsAPI = (pageNo, keywords) =>
       headers: getHeaders(true, false),
       body: null,
       method: "GET",
-    }
+    },
   );
 
 const getJobDetailsAPI = (jobId) =>
@@ -67,7 +70,7 @@ const getJobDetailsAPI = (jobId) =>
       headers: getHeaders(true, true),
       body: null,
       method: "GET",
-    }
+    },
   );
 
 const getSimJobsAPI = (jobId) =>
@@ -77,7 +80,7 @@ const getSimJobsAPI = (jobId) =>
       headers: getHeaders(true, true),
       body: null,
       method: "GET",
-    }
+    },
   );
 
 const loginAPI = (creds) =>
@@ -104,7 +107,7 @@ const getProfileDetailsAPI = async () =>
       headers: getHeaders(true, false),
       body: null,
       method: "GET",
-    }
+    },
   );
 
 const matchScoreAPI = async (jobId) =>
@@ -114,24 +117,29 @@ const matchScoreAPI = async (jobId) =>
     method: "GET",
   });
 
-const incrementCounterAPI = async (useCase = 'newJobApplied') => 
-  fetch(`https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter?useCase=${useCase}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: null,
-    method: "GET",
-  });
-
-const getResumeAPI = async (profileId) => 
+const incrementCounterAPI = async (useCase = "newJobApplied") =>
   fetch(
-    `https://www.naukri.com/cloudgateway-mynaukri/resman-aggregator-services/v1/users/self/profiles/${profileId}/resume`, {
-    headers: {
-      ...getHeaders(true, false),
-      "content-type": "application/pdf",
+    `https://us-central1-easyledger-ed2ef.cloudfunctions.net/apiCounter?useCase=${useCase}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: null,
+      method: "GET",
     },
-    method: "GET",
-  });
+  );
+
+const getResumeAPI = async (profileId) =>
+  fetch(
+    `https://www.naukri.com/cloudgateway-mynaukri/resman-aggregator-services/v1/users/self/profiles/${profileId}/resume`,
+    {
+      headers: {
+        ...getHeaders(true, false),
+        "content-type": "application/pdf",
+      },
+      method: "GET",
+    },
+  );
 
 const getConstantsAPI = async (type) =>
   fetch(`https://getdata-856678010611.us-central1.run.app?type=${type}`, {
