@@ -1,6 +1,25 @@
-data
+# dependencies
+node_modules/
+
+# env / secrets
 .env
-node_modules
-apikeys
-assets
+apikeys/
+
+# runtime data
+data/
+
+# builds
 *.exe
+dist/
+
+# logs
+npm-debug.log*
+*.log
+
+# editor files
+.vscode/
+.idea/
+
+# system files
+.DS_Store
+Thumbs.db
