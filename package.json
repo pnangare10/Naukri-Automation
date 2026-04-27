@@ -30,7 +30,7 @@
     "csv-writer": "^1.6.0",
     "follow-redirects": "^1.15.9",
     "node-fetch": "^3.3.2",
-    "nodemailer": "^6.10.0",
+    "nodemailer": "^6.11.0",
     "spinnies": "^0.5.1",
     "unzipper": "^0.12.3"
   }
