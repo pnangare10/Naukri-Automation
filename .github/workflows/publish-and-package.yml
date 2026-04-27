@@ -1,159 +1,76 @@
-name: Publish and Package
+name: Publish Package
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
-    # Required permissions for release creation and npm publish
+concurrency:
+  group: publish-main
+  cancel-in-progress: false
+
 permissions:
   contents: write
   packages: write
-  actions: read
-  
+
 jobs:
-  publish-and-package:
+  publish:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Needed for version bumping
-        persist-credentials: false
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Setup authentication for pushing
-    - name: Configure Git Authentication
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
 
-    # Get the current version from package.json
-    - name: Get current version
-      id: current_version
-      run: |
-        CURRENT_VERSION=$(node -p "require('./package.json').version")
-        echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-    # Automatic version bumping based on commit messages
-    - name: Bump version
-      id: version-bump
-      uses: phips28/gh-action-bump-version@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag-prefix: 'v'
-        minor-wording: 'feat,feature'
-        major-wording: 'major,breaking'
-        patch-wording: 'fix,patch,refactor'
-        rc-wording: 'rc,alpha,beta'
-        skip-tag: 'true'
-        skip-commit: 'true'
-        skip-push: 'true'
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        registry-url: 'https://registry.npmjs.org'
-        cache: 'npm'
-      
-    # Update version in package.json and commit
-    - name: Update package.json version
-      id: update_version
-      run: |
-        NEW_VERSION=$(node -p "require('./package.json').version")
-        if [ ! -z "$NEW_VERSION" ]; then
-          echo "Updating to version $NEW_VERSION"
-          
-          # Update version in package.json directly
-          jq ".version = \"$NEW_VERSION\"" package.json > temp.json && mv temp.json package.json
-          
-          # Store the new version
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          
-          # Stage and commit changes
-          git add package.json
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          
-          # Push changes
-          git push origin HEAD:main || {
-            echo "Failed to push changes"
-            echo "Fetching latest changes and retrying..."
-            git fetch
-            git rebase origin/main
-            git push origin HEAD:main
-          }
-          
-          echo "Successfully updated version to $NEW_VERSION"
-        else
-          # If no new version, use current version
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "No new version detected, using current version: $CURRENT_VERSION"
-          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        fi
-      
-    - name: Install dependencies
-      run: npm ci
-      
-    # Check if version exists in npm registry
-    - name: Check npm version
-      id: check_version
-      run: |
-        VERSION=$(node -p "require('./package.json').version")
-        if npm view naukri-ninja@$VERSION version >/dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-          echo "Version $VERSION already exists in npm registry, skipping publish"
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Publish to npm
-      if: steps.check_version.outputs.exists != 'true'
-      run: npm publish --access public
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
-    - name: Install pkg
-      run: npm install pkg
-      
-    - name: Package application
-      run: |  
-        mkdir -p assets
-        VERSION=${{ steps.update_version.outputs.new_version }}
-        npx pkg . --output ./assets/naukri-ninja-v$VERSION.exe --targets node18-win-x64
+      - name: Build project
+        run: npm run build --if-present
 
-    - name: Get Commit Messages
-      id: get_commits
-      run: |
-        COMMITS=$(git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --pretty=format:"- %s")
-        echo "COMMITS<<EOF" >> $GITHUB_ENV
-        echo "$COMMITS" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+      - name: Bump patch version
+        id: version
+        run: |
+          npm version patch --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    # Create GitHub release with the executable
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      if: success()
-      with:
-        tag_name: v${{ steps.update_version.outputs.new_version }}
-        name: "Release v${{ steps.update_version.outputs.new_version }}"
-        body: |
-          Automated release for Naukri Ninja
-          Version: ${{ steps.update_version.outputs.new_version }}
-          Previous Version: ${{ steps.current_version.outputs.version }}
-          Build: ${{ github.run_number }}
-          NPM Publish: ${{ steps.check_version.outputs.exists == 'true' && 'Skipped (version exists)' || 'Success' }}
-          
-          Changes:
-          ${{ env.COMMITS }}
-        draft: false
-        prerelease: false
-        files: |
-          assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe
+      - name: Commit bumped version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-    - name: Upload executable artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: naukri-ninja-v${{ steps.update_version.outputs.new_version }}
-        path: assets/naukri-ninja-v${{ steps.update_version.outputs.new_version }}.exe
-        retention-days: 7
+          git add -A
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]" || echo "No changes"
+
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Git tag
+        run: |
+          git tag v${{ steps.version.outputs.version }}
+          git push origin v${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          generate_release_notes: true
