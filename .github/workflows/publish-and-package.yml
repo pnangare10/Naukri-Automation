@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      rollback_version:
+        description: "Optional: rollback GitHub release/tag version (example: 2.12.29)"
+        required: false
+        type: string
 
 concurrency:
   group: publish-main
@@ -15,8 +21,11 @@ permissions:
 
 jobs:
   publish:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: github.event.inputs.rollback_version == '' && !contains(github.event.head_commit.message, '[skip ci]')
     runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -30,9 +39,6 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Install dependencies
         run: npm ci
@@ -74,3 +80,48 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           generate_release_notes: true
+
+  build-windows-exe:
+    needs: publish
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Build Windows EXE
+        run: npm run pkg
+
+      - name: Verify generated files
+        run: dir
+
+      - name: Upload EXE to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.publish.outputs.version }}
+          files: naukri-ninja.exe
+
+  rollback:
+    if: github.event.inputs.rollback_version != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete GitHub Release and Tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ github.event.inputs.rollback_version }}
+          gh release delete v$VERSION -y || true
+          git push --delete origin v$VERSION || true
+          echo "Rollback completed for v$VERSION"
