@@ -75,6 +75,13 @@ The application is organized into these primary layers:
    - `utils/helper.js` - In-memory localStorage implementation, date formatting
    - `utils/cmdUtils.js` - System command execution (open URLs, folders)
    - `utils/analyticsUtils.js` - Event tracking and analytics
+   - `utils/emailTemplate.js` - HTML email template for HR outreach
+
+8. **Update System**
+   - `utils/updater.js` - Version checking and update orchestration
+   - `updateZip.js` - Downloads and extracts update zip from GitHub releases
+   - `update-helper.js` / `update-helper.cjs` - Applies file replacements during self-update (spawned as a separate process so the main exe can be overwritten)
+   - `updateFunctionality/downloadLatestExeFromGitHub.js` - Alternate exe-based update download
 
 ### Data Flow
 
@@ -127,44 +134,6 @@ Write results to CSV
 - User preferences stored as JSON (genAiConfig, matching strategy, daily quota)
 - Supports multiple profiles with different preferences
 - API keys and service account files stored in `/apikeys` folder (git-ignored)
-
-## File Structure
-
-```
-/
-├── index.js                          # Main entry point
-├── api.js                            # All Naukri API endpoints
-├── gemini.js                         # Google AI configuration & initialization
-├── vectorSearch.js                   # Vector search implementation (RAG)
-├── package.json                      # Dependencies & scripts
-│
-├── utils/
-│   ├── jobUtils.js                   # Job search & application logic
-│   ├── userUtils.js                  # Profile & user management
-│   ├── geminiUtils.js                # AI suitability checking & answering
-│   ├── embeddings.js                 # Embedding generation
-│   ├── embeddingUtils.js             # Embedding vector operations
-│   ├── genAiPrompts.js               # AI prompt templates
-│   ├── ioUtils.js                    # File I/O & CLI input
-│   ├── prompts.js                    # Interactive CLI menus
-│   ├── spinniesUtils.js              # Loading spinners
-│   ├── analyticsUtils.js             # Event tracking
-│   ├── programUtils.js               # Update checking & auto-restart
-│   ├── helper.js                     # Utilities (localStorage, date)
-│   ├── emailUtils.js                 # Email extraction from job descriptions
-│   ├── cmdUtils.js                   # System commands (open URL/folder)
-│   ├── utils.js                      # General utilities (matchingStrategy, CSV writing)
-│   └── about.js                      # Author info
-│
-├── constants/
-│   └── funPhrases.js                 # Fun messages for user display
-│
-├── updateFunctionality/
-│   └── downloadLatestExeFromGitHub.js # Auto-update functionality
-│
-└── .github/workflows/
-    └── publish-and-package.yml       # CI/CD: publish npm + build exe
-```
 
 ## Development Notes
 

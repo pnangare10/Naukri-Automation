@@ -1,6 +1,6 @@
 {
   "name": "naukri-ninja",
-  "version": "2.12.26",
+  "version": "2.12.27",
   "description": "Naukri automation tool to fetch, filter , and apply for jobs automatically using gen ai.",
   "main": "index.js",
   "author": "Pranesh Nangare",
@@ -29,7 +29,6 @@
     "@inquirer/prompts": "^7.2.3",
     "csv-writer": "^1.6.0",
     "follow-redirects": "^1.15.9",
-    "naukri-ninja": "file:",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.0",
     "spinnies": "^0.5.1",
