@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "debug": "npx nodemon --trace-deprecation --inspect index.js --ignore data",
     "dev": "node --no-warnings index.js",
-    "pkg": "pkg . --output ../naukri-ninja.exe --targets node18-win-x64"
+    "pkg": "pkg . --output naukri-ninja.exe --targets node18-win-x64"
   },
   "keywords": [
     "automation",
