@@ -60,23 +60,23 @@ const showMainMenu = async () => {
   }, context);
 };
 
-const textModelMenu = async (defaultOption = "gemini-2.0-flash-001") =>
+const textModelMenu = async (defaultOption = "gemini-3.1-flash-lite") =>
   await prompts.select(
     {
       name: "value",
-      message: "Enter the text model (e.g., gemini-2.0-flash-001):",
+      message: "Enter the text model (e.g., gemini-3.1-flash-lite):",
       default: defaultOption,
       choices: [
         {
-          name: "gemini-2.0-flash-001 (Recommended)",
-          value: "gemini-2.0-flash-001",
+          name: "gemini-2.5-flash-lite (Recommended)",
+          value: "gemini-2.5-flash-lite",
         },
-        { name: "gemini-1.5-flash-002", value: "gemini-1.5-flash-002" },
-        { name: "gemini-1.5-flash-001", value: "gemini-1.5-flash-001" },
-        { name: "gemini-1.5-pro-002", value: "gemini-1.5-pro-002" },
-        { name: "gemini-1.5-pro-001", value: "gemini-1.5-pro-001" },
-        { name: "gemini-1.0-pro-002", value: "gemini-1.0-pro-002" },
-        { name: "gemini-1.0-pro-001", value: "gemini-1.0-pro-001" },
+        { name: "gemini-2.5-flash", value: "gemini-2.5-flash" },
+        { name: "gemini-2.5-pro", value: "gemini-2.5-pro" },
+        { name: "gemini-3.1-flash-lite", value: "gemini-3.1-flash-lite" },
+        { name: "gemini-3.5-flash", value: "gemini-3.5-flash" },
+        { name: "gemini-3.6-flash", value: "gemini-3.6-flash" },
+        { name: "gemini-3.7-flash", value: "gemini-3.7-flash" },
       ],
       theme,
     },
