@@ -1,11 +1,5 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { getEmbeddings } = require("./utils/embeddings");
 const {getModelResponse} = require("./gemini");
-
-const genAI = new GoogleGenerativeAI("AIzaSyDBGs8hh0-GsQlyqxU7dCmxWfpEhfBomTA");
-const generativeModel = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-001",
-});
 
 // Calculate cosine similarity
 const cosineSimilarity = (vecA, vecB) => {

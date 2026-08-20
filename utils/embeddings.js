@@ -20,7 +20,7 @@ const getEmbeddings = async (text) => {
     const genAiConfig = preferences?.genAiConfig;
 
     const genAI = new GoogleGenerativeAI(genAiConfig.apiKey);
-    const model = genAI.getGenerativeModel({ model: "embedding-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
     const result = await model.embedContent(text);
     
     if (!result) {
